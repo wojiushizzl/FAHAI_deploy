@@ -185,6 +185,10 @@ class MessageDialog(ft.AlertDialog):
         self.message_container.content.controls = message_tiles
         self.content.content.controls[2] = self.message_container
         self.update_label_visible()
+        # 删除消息后，更新消息数据
+        with open(self.message_path, 'wb') as f:
+            pickle.dump(self.message_data, f)
+        
 
     def notice_btn_clicked(self, e: ft.ControlEvent):
         """左侧通知按钮被点击的事件"""

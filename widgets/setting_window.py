@@ -49,11 +49,10 @@ class SettingWindow(ft.Container):
         CONFIG_OBJ['surface']['bg_image_path'] = bg_image_path if bg_image_path else ''
         CONFIG_OBJ['surface']['bg_image_opacity'] = str(self.surface_tab.image_opacity_slider.value / 100)
 
-        CONFIG_OBJ['function']['thread'] = str(int(self.function_tab.thread_slider.value))
+        CONFIG_OBJ['function']['thread'] = str(self.function_tab.thread_slider.value)
         CONFIG_OBJ['function']['use_gpu'] = str(self.function_tab.use_gpu_switch.value)
-        CONFIG_OBJ['function']['qwen_key'] = self.function_tab.qwen_key_input.value
-        CONFIG_OBJ['function']['yuanqi_id'] = self.function_tab.yuanqi_id_input.value
-        CONFIG_OBJ['function']['yuanqi_token'] = self.function_tab.yuanqi_token_input.value
+ 
+
 
         with open('user_data/config.ini', 'w', encoding='utf-8') as f:
             CONFIG_OBJ.write(f)
@@ -80,9 +79,7 @@ class SettingWindow(ft.Container):
         self.function_tab.thread_slider.value = Setting.thread
         self.function_tab.thread_label.value = str(Setting.thread)
         self.function_tab.use_gpu_switch.value = Setting.use_gpu
-        self.function_tab.qwen_key_input.value = Setting.qwen_api_key
-        self.function_tab.yuanqi_id_input.value = Setting.yuanqi_id
-        self.function_tab.yuanqi_token_input.value = Setting.yuanqi_token
+
 
         self.save_config()
         self.surface_tab.theme_change_event(...)
@@ -191,7 +188,7 @@ class BaseTab(ft.Tab):
         self.final_card_row.controls[3].controls[1].value = f'版本 {Setting.version}'
         self.update_btn.disabled = True
         self.final_card_row.update()
-
+        # 检查更新 TODO
         time.sleep(0.5)
         self.final_card_row.controls[2] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
         self.final_card_row.controls[3].controls[0].value = 'APP 已是最新版本'
@@ -437,7 +434,9 @@ class FunctionTab(ft.Tab):
         """初始化组件"""
         card_label = ft.Text('图像处理', size=15)
         label = ft.Text('图像功能运行的线程数', size=14, expand=1)
-        thread_count = CONFIG_OBJ.getint('function', 'thread') if CONFIG_OBJ.has_option('function', 'thread') else Setting.thread
+        # thread_count = CONFIG_OBJ.getint('function', 'thread') if CONFIG_OBJ.has_option('function', 'thread') else Setting.thread
+        thread_count = CONFIG_OBJ.getfloat('function', 'thread') if CONFIG_OBJ.has_option('function', 'thread') else Setting.thread
+
         self.thread_slider = ft.Slider(thread_count, min=1, max=10, divisions=9, expand=1, label='{value}',
                                        interaction=ft.SliderInteraction.SLIDE_THUMB, tooltip='视CPU核心数，线程数不总是越多越好',
                                        on_change=self.thread_change_event)
@@ -458,38 +457,9 @@ class FunctionTab(ft.Tab):
         card_content = ft.Container(ft.Column([row, self.card_row2], spacing=20), padding=20)
         card = ft.Card(card_content, variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
 
-        text_span = ft.TextSpan('通义千问', url='https://bailian.console.aliyun.com/')
-        label = ft.Text(spans=[text_span], size=15, color='tertiary', tooltip='点击访问通义千问首页', weight=ft.FontWeight.BOLD)
-        tooltip = ft.Tooltip(message='因作者的额度有限，请用户自行申请API-KEY使用')
-        help_icon = ft.Icon('help', color=ft.colors.GREY, size=16, tooltip=tooltip)
-        card2_prefix = ft.Row([label, help_icon])
 
-        label = ft.Container(ft.Text('API-KEY', size=14), padding=ft.Padding(0, 0, 0, 10), expand=2)
-        qwen_key = CONFIG_OBJ['function']['qwen_key'] if CONFIG_OBJ.has_option('function', 'qwen_key') else Setting.qwen_api_key
-        self.qwen_key_input = ft.TextField(qwen_key, password=True, can_reveal_password=True, expand=1, dense=True, max_length=128)
-        row = ft.Row([label, self.qwen_key_input])
-        card_content = ft.Container(row, padding=20)
-        card2 = ft.Card(card_content, variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
 
-        text_span = ft.TextSpan('腾讯元器', url='https://yuanqi.tencent.com/')
-        label = ft.Text(spans=[text_span], size=15, color='tertiary', tooltip='点击访问腾讯元器首页', weight=ft.FontWeight.BOLD)
-        tooltip = ft.Tooltip(message='因作者的额度有限，请用户自行创建智能体使用')
-        help_icon = ft.Icon('help', color=ft.colors.GREY, size=15, tooltip=tooltip)
-        card3_prefix = ft.Row([label, help_icon])
-
-        yuanqi_id = CONFIG_OBJ['function']['yuanqi_id'] if CONFIG_OBJ.has_option('function', 'yuanqi_id') else Setting.yuanqi_id
-        self.yuanqi_id_input = ft.TextField(yuanqi_id, expand=1, dense=True)
-        row = ft.Row([ft.Text('智能体ID', size=14, expand=2), self.yuanqi_id_input])
-
-        label = ft.Container(ft.Text('Token', size=14), padding=ft.Padding(0, 0, 0, 10), expand=2)
-        yuanqi_token = CONFIG_OBJ['function']['yuanqi_token'] if CONFIG_OBJ.has_option('function', 'yuanqi_token') else Setting.yuanqi_token
-        self.yuanqi_token_input = ft.TextField(yuanqi_token, password=True, can_reveal_password=True, expand=1,
-                                               dense=True, max_length=128)
-        row2 = ft.Row([label, self.yuanqi_token_input])
-        card_content = ft.Container(ft.Column([row, row2], spacing=20), padding=20)
-        card3 = ft.Card(card_content, variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
-
-        column = ft.Column([card_label, card, card2_prefix, card2, card3_prefix, card3], width=720, spacing=12)
+        column = ft.Column([card_label, card], width=720, spacing=12)
         tab_container = ft.Container(column, padding=36, alignment=ft.Alignment(0, -1))
         self.content = ft.Column([tab_container], scroll=ft.ScrollMode.AUTO)
 
@@ -509,6 +479,7 @@ class FunctionTab(ft.Tab):
         self.card_row2.controls[5].disabled = True
         self.card_row2.update()
 
+        # 测试显卡是否可用 TODO
         time.sleep(0.5)
         self.card_row2.controls[3] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
         self.card_row2.controls[4].value = '显卡正常使用'

@@ -24,7 +24,7 @@ def main():
     if args.web:
         assert 1024 < args.port <= 65535, '端口号必须在(1024, 65535]之间'
         host = '0.0.0.0' if args.host == '0.0.0.0' else '127.0.0.1'
-        os.environ['FLET_SECRET_KEY'] = 'lasifea'
+        os.environ['FLET_SECRET_KEY'] = 'zzl'
         ft.app(MainWindow, name=Setting.title, view=ft.AppView.WEB_BROWSER, port=args.port, host=host,
                use_color_emoji=True, web_renderer=ft.WebRenderer.CANVAS_KIT, upload_dir=Setting.upload_dir,
                assets_dir=f'{app_dir}/assets')

@@ -6,8 +6,8 @@ from dataclasses import dataclass
 @dataclass
 class Setting:
     """软件设置"""
-    title: str = "Flet-GUI-basic"
-    version: str = '0.4.0'
+    title: str = "FAHAI-AI-VISION"
+    version: str = '0.1.0'
     _app_dir: str = os.getenv('APP_DIR')
 
     # 运行时文件保存路径
@@ -25,11 +25,10 @@ class Setting:
     bg_image_idx: int = 0
     bg_image_path: str = ''
     bg_image_opacity: float = 0.15
+
     thread: int = 3
     use_gpu: bool = False
-    qwen_api_key: str = 'sk-7628caf375354d51a45d9202bb99da5f'
-    yuanqi_id: str = 'WfdxtUNUaBUk'
-    yuanqi_token: str = 'kR2C1EjEeXP0VSgVbBvYP3JHrhllb7aa'
+
 
 
 CONFIG_OBJ = ConfigParser()

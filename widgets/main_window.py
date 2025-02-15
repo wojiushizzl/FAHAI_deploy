@@ -48,17 +48,9 @@ class MainWindow:
 
     def _init_widgets(self):
         """初始化组件"""
-        self.msg_card = ft.Card(width=240, height=148, right=0, top=20,
-                                offset=(1.2, 0), animate_offset=ft.Animation(600, ft.AnimationCurve.EASE_IN_OUT_CUBIC),
-                                content=ft.Container(ft.Text('Hi, 很高兴遇见你😀！', size=20, color=ft.colors.PRIMARY),
-                                                     alignment=ft.Alignment(0, 0)))
-        self.ad_content = ft.Column([ft.Image('/images/plant_grow.gif'), ft.Text('广告位，怎能没有你😉。', size=20, color=ft.colors.PRIMARY)],
-                                    alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-        self.ad_card = ft.Card(width=240, height=388, right=0, bottom=20, opacity=0,
-                               animate_opacity=ft.Animation(600, ft.AnimationCurve.EASE_IN_OUT_CUBIC),
-                               content=self.ad_content)
 
-        self.content_stack = ft.Stack([self.home_window, self.msg_card, self.ad_card], alignment=ft.Alignment(0, 0),
+
+        self.content_stack = ft.Stack([self.home_window], alignment=ft.Alignment(0, 0),
                                       fit=ft.StackFit.EXPAND)
         content_widget = ft.Container(margin=ft.Margin(10, 0, 10, 0), expand=1, content=self.content_stack)
         divider = ft.VerticalDivider(1, leading_indent=10, trailing_indent=10)
@@ -72,14 +64,10 @@ class MainWindow:
         self.setting_window.surface_tab.window_container = self.window_container
         self.page.add(self.window_container)
         self.page.floating_action_button = ft.FloatingActionButton(icon=ft.icons.GAMES, opacity=0.4, mini=True,
-                                                                   tooltip='请别点击我', animate_opacity=1000,
+                                                                   tooltip='Clean Mode', animate_opacity=1000,
                                                                    on_click=self.float_btn_click_event, )
         self.page.floating_action_button_location = 'startFloat'
 
-        self.snack_bar = ft.SnackBar(ft.Text('未检测到人脸😦，请更换包含人像的图片后再次重试', size=16), action='好的，我知道了',
-                                     behavior=ft.SnackBarBehavior.FLOATING, width=610, padding=ft.Padding(20, 12, 10, 12),
-                                     dismiss_direction=ft.DismissDirection.HORIZONTAL, duration=5000)
-        self.page.overlay.append(self.snack_bar)
 
     def _bind(self):
         """下级控件的事件绑定"""
@@ -130,24 +118,19 @@ class MainWindow:
         if current_window != self.data_overview_window:
             self.data_overview_window = None
 
-        if current_window != self.interests_window and self.interests_window is not None:
-            self.interests_window.generate_tab.travel = None
-            self.interests_window.generate_tab.run_thread = None
-            self.interests_window.chat_tab.cat_gpt = None
-            self.interests_window.chat_tab.run_thread = None
 
     def float_btn_click_event(self, e: ft.ControlEvent):
         """主窗口中浮动按钮的点击事件"""
         if self.page.floating_action_button.opacity == 0.4:
             self.page.floating_action_button.opacity = 0.1
-            self.page.floating_action_button.tooltip = '还原'
+            self.page.floating_action_button.tooltip = 'clean mode'
             self.title_bar.offset = (0, -1)
             self.left_menu.offset = (-1, 0)
             self.divider_container.opacity = 0
             self.page.window.always_on_top = True
         else:
             self.page.floating_action_button.opacity = 0.4
-            self.page.floating_action_button.tooltip = '请别点击我'
+            self.page.floating_action_button.tooltip = 'clean mode'
             self.title_bar.offset = (0, 0)
             self.left_menu.offset = (0, 0)
             self.divider_container.opacity = 1
@@ -167,19 +150,13 @@ class MainWindow:
 
         await asyncio.sleep(0.5)
         audio_played(self.page)
-        self.msg_card.offset = (0, 0)
-        self.ad_card.opacity = 1
         self.content_stack.update()
         await asyncio.sleep(10)
 
-        self.msg_card.offset = (1.2, 0)
-        self.ad_card.opacity = 0
-        self.content_stack.update()
-        await asyncio.sleep(1)
+        self.title_bar.notice_badge.label_visible = False
+        self.page.update()
 
         self.title_bar.notice_badge.label_visible = False
-        self.ad_card.visible = False
-        self.content_stack.controls.remove(self.msg_card)
         self.page.update()
 
     def load_surface(self):
