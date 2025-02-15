@@ -3,6 +3,7 @@ import os
 app_dir = os.path.dirname(__file__)
 os.chdir(app_dir)
 os.environ['APP_DIR'] = app_dir
+print(app_dir)
 
 import flet as ft
 from widgets.main_window import MainWindow
