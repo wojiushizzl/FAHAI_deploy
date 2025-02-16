@@ -29,6 +29,9 @@ class Setting:
     thread: int = 3
     use_gpu: bool = False
 
+    # 部署页面
+    project: str = '0'
+
 
 
 CONFIG_OBJ = ConfigParser()
@@ -41,3 +44,15 @@ if not CONFIG_OBJ.has_section('function'):
     CONFIG_OBJ.add_section('function')
 if not CONFIG_OBJ.has_section('shortcut'):
     CONFIG_OBJ.add_section('shortcut')
+if not CONFIG_OBJ.has_section('deploy_model'):
+    CONFIG_OBJ.add_section('deploy_model')
+if not CONFIG_OBJ.has_section('deploy_output'):
+    CONFIG_OBJ.add_section('deploy_output')
+if not CONFIG_OBJ.has_section('deploy_plc'):
+    CONFIG_OBJ.add_section('deploy_plc')
+if not CONFIG_OBJ.has_section('deploy_cam'):
+    CONFIG_OBJ.add_section('deploy_cam')
+if not CONFIG_OBJ.has_section('deploy_function'):
+    CONFIG_OBJ.add_section('deploy_function')
+
+

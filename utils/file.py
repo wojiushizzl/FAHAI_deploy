@@ -5,7 +5,7 @@ from time import strftime
 from typing import Union, Iterable
 
 
-def create_logger(logger_name: str = 'lasifea',
+def create_logger(logger_name: str = 'FAHAI-AI-VISION',
                   level: Union[int, str] = 20,
                   log_dir: str = 'logs',
                   console_show: bool = False) -> Logger:
