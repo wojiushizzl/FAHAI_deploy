@@ -38,6 +38,8 @@ CONFIG_OBJ = ConfigParser()
 CONFIG_OBJ.read('user_data/config.ini', encoding='utf-8')
 if not CONFIG_OBJ.has_section('base'):
     CONFIG_OBJ.add_section('base')
+if not CONFIG_OBJ.has_section('home'):
+    CONFIG_OBJ.add_section('home')
 if not CONFIG_OBJ.has_section('surface'):
     CONFIG_OBJ.add_section('surface')
 if not CONFIG_OBJ.has_section('function'):

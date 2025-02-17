@@ -9,6 +9,7 @@ from threading import Thread
 from typing import List, Optional
 import json
 
+
 class InterestsWindow(ft.Container):
     def __init__(self):
         """兴趣内容窗口"""
@@ -80,12 +81,12 @@ class BaseTab1(ft.Tab):
         self.plc_ip = CONFIG_OBJ[self.selected_project][plc_ip_key]
         plc_port_key = 'plc_port'
         self.plc_port = CONFIG_OBJ[self.selected_project][plc_port_key]
-        Plc_ip_label = ft.Text('PLC IP', size=10)
-        Plc_ip_input = ft.TextField(value=self.plc_ip,width=200,text_size=10,on_change=self.project_config_save,key=plc_ip_key)
-        Plc_port_label = ft.Text('PLC Port', size=10)
-        Plc_port_input = ft.TextField(value=self.plc_port,width=200,text_size=10,on_change=self.project_config_save,key=plc_port_key)
-        plc_ip_row = ft.Row([Plc_ip_label, ft.Row(expand=1),Plc_ip_input, ])
-        plc_port_row = ft.Row([Plc_port_label, ft.Row(expand=1),Plc_port_input, ])
+        Plc_ip_label = ft.Text('PLC IP', size=12)
+        self.plc_ip_input = ft.TextField(value=self.plc_ip,width=200,text_size=14,on_change=self.project_config_save,key=plc_ip_key)
+        Plc_port_label = ft.Text('PLC Port', size=12)
+        self.plc_port_input = ft.TextField(value=self.plc_port,width=200,text_size=14,on_change=self.project_config_save,key=plc_port_key)
+        plc_ip_row = ft.Row([Plc_ip_label, ft.Row(expand=1),self.plc_ip_input, ])
+        plc_port_row = ft.Row([Plc_port_label, ft.Row(expand=1),self.plc_port_input, ])
     
         status_show = ft.Container()
         label = ft.Text('', size=12, width=100)
@@ -100,15 +101,15 @@ class BaseTab1(ft.Tab):
         self.plc_trigger_count = CONFIG_OBJ[self.selected_project][plc_trigger_count_key]
         signal_type_key = 'signal_type'
         self.signal_type = CONFIG_OBJ[self.selected_project][signal_type_key]
-        plc_trigger_address_label = ft.Text('PLC Trigger Address', size=10)
-        plc_trigger_address_input = ft.TextField(value=self.plc_trigger_address,width=200,text_size=10,on_change=self.project_config_save,key=plc_trigger_address_key)
-        plc_trigger_count_label = ft.Text('PLC Trigger Count', size=10)
-        plc_trigger_count_input = ft.TextField(value=self.plc_trigger_count,width=200,text_size=10,on_change=self.project_config_save,key=plc_trigger_count_key)
-        signal_type_label = ft.Text('Signal Type', size=10)
+        plc_trigger_address_label = ft.Text('PLC Trigger Address', size=12)
+        plc_trigger_address_input = ft.TextField(value=self.plc_trigger_address,width=200,text_size=14,on_change=self.project_config_save,key=plc_trigger_address_key)
+        plc_trigger_count_label = ft.Text('PLC Trigger Count', size=12)
+        plc_trigger_count_input = ft.TextField(value=self.plc_trigger_count,width=200,text_size=14,on_change=self.project_config_save,key=plc_trigger_count_key)
+        signal_type_label = ft.Text('Signal Type', size=12)
         signal_type_input = ft.Dropdown(options=[
             ft.dropdown.Option('0', '上升沿'),
             ft.dropdown.Option('1', '下降沿'),
-        ], dense=True, text_size=10, expand=1, value=self.signal_type, on_change=self.project_config_save,key=signal_type_key)
+        ], dense=True, text_size=14, expand=1, value=self.signal_type, on_change=self.project_config_save,key=signal_type_key)
         plc_trigger_address_row = ft.Row([plc_trigger_address_label, ft.Row(expand=1),plc_trigger_address_input, ])
         plc_trigger_count_row = ft.Row([plc_trigger_count_label, ft.Row(expand=1),plc_trigger_count_input, ])
         signal_type_row = ft.Row([signal_type_label, ft.Row(expand=1),signal_type_input, ])
@@ -146,34 +147,34 @@ class BaseTab1(ft.Tab):
         cam1_row = ft.Row([cam1_setting_label, help_icon, ft.Row(expand=1), self.cam1_type_input, self.cam1_idx_input,  self.cam1_use_input])
         cam1_row2 = ft.Row([ft.Text('Cam1 Size', size=14), ft.Row(expand=1), self.cam1_size_input])
 
-        cam2_setting_label = ft.Text('CAM_2 settings', size=15)
-        cam_tooltip = ft.Tooltip(message='Select the CAM type')
-        help_icon = ft.Icon('help', color=ft.colors.GREY, size=16, tooltip=cam_tooltip)
-        cam2_type_key = 'cam2_type'
-        cam2_idx_key = 'cam2_idx'
-        cam2_size_key = 'cam2_size'
-        cam2_type=CONFIG_OBJ[self.selected_project][cam2_type_key]
-        cam2_idx=CONFIG_OBJ[self.selected_project][cam2_idx_key]
-        cam2_size = CONFIG_OBJ[self.selected_project][cam2_size_key]
-        self.cam2_type_input = ft.Dropdown(options=[
-            ft.dropdown.Option('0', 'CV CAM'),
-            ft.dropdown.Option('1', 'Hikvision'),
-            ft.dropdown.Option('2', 'other',disabled=True)
-        ], dense=True, text_size=14, expand=1, value=cam2_type, on_change=self.project_config_save,key=cam2_type_key)
-        self.cam2_idx_input = ft.Dropdown(options=[
-            ft.dropdown.Option('0', '0'),
-            ft.dropdown.Option('1', '1'),
-            ft.dropdown.Option('2', '2'),
-            ft.dropdown.Option('3', '3'),
-        ], dense=True, text_size=14, expand=1, value=cam2_idx, on_change=self.project_config_save,key=cam2_idx_key)
-        self.cam2_size_input = ft.TextField(value=cam2_size,on_change=self.project_config_save,key=cam2_size_key)
-        cam2_use_key = 'cam2_use'
-        cam2_use=CONFIG_OBJ[self.selected_project][cam2_use_key]
-        self.cam2_use_input = ft.Switch(value=cam2_use, on_change=self.project_config_save,key=cam2_use_key)
-        cam2_row = ft.Row([cam2_setting_label, help_icon, ft.Row(expand=1), self.cam2_type_input, self.cam2_idx_input,self.cam2_use_input])
-        cam2_row2 = ft.Row([ft.Text('Cam2 Size', size=14), ft.Row(expand=1), self.cam2_size_input])
+        # cam2_setting_label = ft.Text('CAM_2 settings', size=15)
+        # cam_tooltip = ft.Tooltip(message='Select the CAM type')
+        # help_icon = ft.Icon('help', color=ft.colors.GREY, size=16, tooltip=cam_tooltip)
+        # cam2_type_key = 'cam2_type'
+        # cam2_idx_key = 'cam2_idx'
+        # cam2_size_key = 'cam2_size'
+        # cam2_type=CONFIG_OBJ[self.selected_project][cam2_type_key]
+        # cam2_idx=CONFIG_OBJ[self.selected_project][cam2_idx_key]
+        # cam2_size = CONFIG_OBJ[self.selected_project][cam2_size_key]
+        # self.cam2_type_input = ft.Dropdown(options=[
+        #     ft.dropdown.Option('0', 'CV CAM'),
+        #     ft.dropdown.Option('1', 'Hikvision'),
+        #     ft.dropdown.Option('2', 'other',disabled=True)
+        # ], dense=True, text_size=14, expand=1, value=cam2_type, on_change=self.project_config_save,key=cam2_type_key)
+        # self.cam2_idx_input = ft.Dropdown(options=[
+        #     ft.dropdown.Option('0', '0'),
+        #     ft.dropdown.Option('1', '1'),
+        #     ft.dropdown.Option('2', '2'),
+        #     ft.dropdown.Option('3', '3'),
+        # ], dense=True, text_size=14, expand=1, value=cam2_idx, on_change=self.project_config_save,key=cam2_idx_key)
+        # self.cam2_size_input = ft.TextField(value=cam2_size,on_change=self.project_config_save,key=cam2_size_key)
+        # cam2_use_key = 'cam2_use'
+        # cam2_use=CONFIG_OBJ[self.selected_project][cam2_use_key]
+        # self.cam2_use_input = ft.Switch(value=cam2_use, on_change=self.project_config_save,key=cam2_use_key)
+        # cam2_row = ft.Row([cam2_setting_label, help_icon, ft.Row(expand=1), self.cam2_type_input, self.cam2_idx_input,self.cam2_use_input])
+        # cam2_row2 = ft.Row([ft.Text('Cam2 Size', size=14), ft.Row(expand=1), self.cam2_size_input])
 
-        cam_card = ft.Card(ft.Container(ft.Column([cam1_row, cam1_row2, cam2_row, cam2_row2]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
+        cam_card = ft.Card(ft.Container(ft.Column([cam1_row, cam1_row2]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
 
 
         # 模型选择
@@ -185,9 +186,9 @@ class BaseTab1(ft.Tab):
         model1_path_key = 'model1_path' 
         model1_confidence_key = 'model1_confidence'
         model1_iou_key = 'model1_iou'
-        model1_path = CONFIG_OBJ[self.selected_project][model1_path_key]
-        model1_confidence = CONFIG_OBJ[self.selected_project][model1_confidence_key]
-        model1_iou = CONFIG_OBJ[self.selected_project][model1_iou_key]
+        self.model1_path = CONFIG_OBJ[self.selected_project][model1_path_key]
+        self.model1_confidence = CONFIG_OBJ[self.selected_project][model1_confidence_key]
+        self.model1_iou = CONFIG_OBJ[self.selected_project][model1_iou_key]
         import_model1_btn = ft.OutlinedButton(content=ft.Text('Import model', size=12), on_click=self.import_model1_event)
 
 
@@ -196,37 +197,37 @@ class BaseTab1(ft.Tab):
         model1_use_input = ft.Switch(value=model1_use, on_change=self.project_config_save,key=model1_use_key)
         model1_row = ft.Row([
             model1_label, help_icon, ft.Row(expand=1), 
-            ft.Text(model1_path[:20] + '...' if len(model1_path) > 20 else model1_path, size=10), 
+            ft.Text(self.model1_path[:20] + '...' if len(self.model1_path) > 20 else self.model1_path, size=10), 
             import_model1_btn, model1_use_input
             ]) 
-        model1_confidence_input = ft.TextField(value=model1_confidence,on_change=self.project_config_save)
+        model1_confidence_input = ft.TextField(value=self.model1_confidence,on_change=self.project_config_save)
         model1_row2 = ft.Row([ft.Text('Model1 Confidence', size=14), ft.Row(expand=1), model1_confidence_input])
-        model1_iou_input = ft.TextField(value=model1_iou,on_change=self.project_config_save,key=model1_iou_key)
+        model1_iou_input = ft.TextField(value=self.model1_iou,on_change=self.project_config_save,key=model1_iou_key)
         model1_row3 = ft.Row([ft.Text('Model1 IOU', size=14), ft.Row(expand=1), model1_iou_input])
 
 
-        model2_label = ft.Text('Model_2 path', size=15)
-        model2_path_key = 'model2_path'
-        model2_confidence_key = 'model2_confidence'
-        model2_iou_key = 'model2_iou'
-        model2_path = CONFIG_OBJ[self.selected_project][model2_path_key]
-        model2_confidence = CONFIG_OBJ[self.selected_project][model2_confidence_key]
-        model2_iou = CONFIG_OBJ[self.selected_project][model2_iou_key]
-        import_model2_btn = ft.OutlinedButton(content=ft.Text('Import model', size=12), on_click=self.import_model2_event)
-        model2_use_key = 'model2_use'
-        model2_use = CONFIG_OBJ[self.selected_project][model2_use_key]
-        model2_use_input = ft.Switch(value=model2_use, on_change=self.project_config_save,key=model2_use_key)
-        model2_row = ft.Row([
-            model2_label, help_icon, ft.Row(expand=1), 
-            ft.Text(model2_path[:20] + '...' if len(model2_path) > 20 else model2_path, size=10), 
-            import_model2_btn, model2_use_input]) 
-        model2_confidence_input = ft.TextField(value=model2_confidence,on_change=self.project_config_save)
-        model2_row2 = ft.Row([ft.Text('Model2 Confidence', size=14), ft.Row(expand=1), model2_confidence_input])
-        model2_iou_input = ft.TextField(value=model2_iou,on_change=self.project_config_save,key=model2_iou_key)
-        model2_row3 = ft.Row([ft.Text('Model2 IOU', size=14), ft.Row(expand=1), model2_iou_input])
+        # model2_label = ft.Text('Model_2 path', size=15)
+        # model2_path_key = 'model2_path'
+        # model2_confidence_key = 'model2_confidence'
+        # model2_iou_key = 'model2_iou'
+        # model2_path = CONFIG_OBJ[self.selected_project][model2_path_key]
+        # model2_confidence = CONFIG_OBJ[self.selected_project][model2_confidence_key]
+        # model2_iou = CONFIG_OBJ[self.selected_project][model2_iou_key]
+        # import_model2_btn = ft.OutlinedButton(content=ft.Text('Import model', size=12), on_click=self.import_model2_event)
+        # model2_use_key = 'model2_use'
+        # model2_use = CONFIG_OBJ[self.selected_project][model2_use_key]
+        # model2_use_input = ft.Switch(value=model2_use, on_change=self.project_config_save,key=model2_use_key)
+        # model2_row = ft.Row([
+        #     model2_label, help_icon, ft.Row(expand=1), 
+        #     ft.Text(model2_path[:20] + '...' if len(model2_path) > 20 else model2_path, size=10), 
+        #     import_model2_btn, model2_use_input]) 
+        # model2_confidence_input = ft.TextField(value=model2_confidence,on_change=self.project_config_save)
+        # model2_row2 = ft.Row([ft.Text('Model2 Confidence', size=14), ft.Row(expand=1), model2_confidence_input])
+        # model2_iou_input = ft.TextField(value=model2_iou,on_change=self.project_config_save,key=model2_iou_key)
+        # model2_row3 = ft.Row([ft.Text('Model2 IOU', size=14), ft.Row(expand=1), model2_iou_input])
 
 
-        model_card = ft.Card(ft.Container(ft.Column([model1_row, model1_row2, model1_row3, model2_row, model2_row2, model2_row3]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
+        model_card = ft.Card(ft.Container(ft.Column([model1_row, model1_row2, model1_row3]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
 
 
         # 输出设置
@@ -314,26 +315,32 @@ class BaseTab1(ft.Tab):
         logic_type_row = ft.Row([logic_type_label, ft.Row(expand=1), logic_type_input])
 
         model1_selected_objects_key = 'model1_selected_objects'
-        model1_selected_objects_value = CONFIG_OBJ[self.selected_project][model1_selected_objects_key]
+        self.model1_selected_objects_value = CONFIG_OBJ[self.selected_project][model1_selected_objects_key].split(',')[0:-1]
         model1_selected_objects_label = ft.Text('Model1 selected objects', size=14)
-        model1_selected_objects_input = ft.Dropdown(options=[# TODO: 改为多选框，并从模型文件中读取
-            ft.dropdown.Option('0', '0'),
-            ft.dropdown.Option('1', '1'),
-        ], dense=True, text_size=14, expand=1, value=model1_selected_objects_value, on_change=self.project_config_save,key=model1_selected_objects_key)
-        model1_selected_objects_row = ft.Row([model1_selected_objects_label, ft.Row(expand=1), model1_selected_objects_input])
+        self.model1_selected_objects_show = ft.Text(self.model1_selected_objects_value, size=14)
+        model1_selected_objects_row = ft.Row([model1_selected_objects_label, ft.Row(expand=1), self.model1_selected_objects_show])
 
-        model2_selected_objects_key = 'model2_selected_objects'
-        model2_selected_objects_value = CONFIG_OBJ[self.selected_project][model2_selected_objects_key]
-        model2_selected_objects_label = ft.Text('Model2 selected objects', size=14)
-        model2_selected_objects_input = ft.Dropdown(options=[# TODO: 改为多选框，并从模型文件中读取
-            ft.dropdown.Option('0', '0'),
-            ft.dropdown.Option('1', '1'),
-            ft.dropdown.Option('2', '2'),
-        ], dense=True, text_size=14, expand=1, value=model2_selected_objects_value, on_change=self.project_config_save,key=model2_selected_objects_key)
-        model2_selected_objects_row = ft.Row([model2_selected_objects_label, ft.Row(expand=1), model2_selected_objects_input])
+        status_show = ft.Container()
+        label = ft.Text('', size=12, width=100)
+        label2 = ft.Text('', size=12, width=100, color=ft.colors.GREY)
+        column = ft.Column([label, label2], spacing=0)
+        self.check_model_btn = ft.ElevatedButton('Check model', on_click=self.check_model_btn_clicked)
+        self.model_check_row = ft.Row([ft.Row(expand=1),status_show, column, self.check_model_btn])
+        self.model_class_select = ft.Column([])
+        
+
+        # model2_selected_objects_key = 'model2_selected_objects'
+        # model2_selected_objects_value = CONFIG_OBJ[self.selected_project][model2_selected_objects_key]
+        # model2_selected_objects_label = ft.Text('Model2 selected objects', size=14)
+        # model2_selected_objects_input = ft.Dropdown(options=[# TODO: 改为多选框，并从模型文件中读取
+        #     ft.dropdown.Option('0', '0'),
+        #     ft.dropdown.Option('1', '1'),
+        #     ft.dropdown.Option('2', '2'),
+        # ], dense=True, text_size=14, expand=1, value=model2_selected_objects_value, on_change=self.project_config_save,key=model2_selected_objects_key)
+        # model2_selected_objects_row = ft.Row([model2_selected_objects_label, ft.Row(expand=1), model2_selected_objects_input])
 
 
-        logic_card = ft.Card(ft.Container(ft.Column([logic_type_row, model1_selected_objects_row, model2_selected_objects_row]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
+        logic_card = ft.Card(ft.Container(ft.Column([logic_type_row, model1_selected_objects_row, self.model_check_row, self.model_class_select]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
 
 
 
@@ -447,8 +454,8 @@ class BaseTab1(ft.Tab):
                     'plc_output_address' : 2,
                     'plc_output_value' : 888,
                     'logic_type' : 0,
-                    'model1_selected_objects' : 0,
-                    'model2_selected_objects' : 0,
+                    'model1_selected_objects' : '',
+                    'model2_selected_objects' : '',
                     'scan' : False
                 }
                 with open('user_data/config.ini', 'w', encoding='utf-8') as f:
@@ -551,9 +558,84 @@ class BaseTab1(ft.Tab):
         # 检查plc连接 TODO
         time.sleep(0.5)
         self.trigger_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
-        self.trigger_row3.controls[2].controls[0].value = 'PLC连接成功'
+        self.trigger_row3.controls[2].controls[0].value = 'PLC连接检查成功'
+        self.trigger_row3.controls[2].controls[1].value = f'IP:{self.plc_ip_input.value}, Port:{self.plc_port_input.value}'
         self.test_plc_btn.disabled = False
         self.trigger_row3.update()
+
+
+    def check_model_btn_clicked(self,e:ft.ControlEvent):
+        """检查模型按钮被点击的事件"""
+        print("===>check_model_btn_clicked")
+        Thread(target=self.check_model_event, daemon=True).start()
+
+    def check_model_event(self):
+        """开启额外线程检查更新"""
+        self.model_check_row.controls[1] = ft.ProgressRing(width=16, height=16, stroke_width=2)
+        self.model_check_row.controls[2].controls[0].value = '正在检查模型'
+        self.check_model_btn.disabled = True
+        self.model_check_row.update()
+
+        try:
+            
+            from ultralytics import YOLO
+            model = YOLO(self.model1_path)
+            classes = model.names
+            current_class = CONFIG_OBJ[self.selected_project]['model1_selected_objects'].split(',')[0:-1]
+
+
+            class_values = list(classes.values())
+
+            # 检查classes是否包含current_class
+            for class_value in current_class:
+                if class_value not in class_values:
+                    self.snack_message(f'{class_value} not in model, reset to default', 'red')
+                    CONFIG_OBJ[self.selected_project]['model1_selected_objects'] = ''
+                    with open('user_data/config.ini', 'w', encoding='utf-8') as f:
+                        CONFIG_OBJ.write(f)
+
+
+            self.model_class_select.controls = []
+            for i, class_key in enumerate(classes.keys()):
+                self.model_class_select.controls.append(ft.Checkbox(
+                    label=classes[class_key], 
+                    value=True if classes[class_key] in current_class else False,
+                    on_change=self.save_model_selected_class))
+
+            self.model_class_select.update()
+
+            self.model_check_row.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+            self.model_check_row.controls[2].controls[0].value = '模型检查成功'
+            self.model_check_row.controls[2].controls[1].value = f'model1_class'
+            self.check_model_btn.disabled = False
+            self.model_check_row.update()
+
+
+        except Exception as e:
+            print(f"===>check_model_event error: {e}")
+            self.model_check_row.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+            self.model_check_row.controls[2].controls[0].value = '模型检查失败'
+            self.model_check_row.controls[2].controls[1].value = f'请确认模型地址是否正确'
+            self.check_model_btn.disabled = False
+            self.model_check_row.update()
+
+
+    def save_model_selected_class(self, e: ft.ControlEvent):
+        """保存模型类别事件"""
+        print("===>save_model_selected_class")
+        # 获取当前选中的类别
+        current_class = CONFIG_OBJ[self.selected_project]['model1_selected_objects']
+        if e.control.value:
+            CONFIG_OBJ[self.selected_project]['model1_selected_objects'] = current_class + e.control.label + ','
+        else:
+            CONFIG_OBJ[self.selected_project]['model1_selected_objects'] = current_class.replace(e.control.label + ',', '')
+        with open('user_data/config.ini', 'w', encoding='utf-8') as f:
+            CONFIG_OBJ.write(f)
+
+        # 更新模型类别选择
+        self.model1_selected_objects_value = CONFIG_OBJ[self.selected_project]['model1_selected_objects'].split(',')[0:-1]
+        self.model1_selected_objects_show.value = self.model1_selected_objects_value
+        self.model1_selected_objects_show.update()
 
     def import_result_save_path_event(self, e: ft.ControlEvent):
         """导入结果保存路径事件"""
