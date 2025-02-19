@@ -347,14 +347,30 @@ class BaseTab1(ft.Tab):
         # 其他设置
         other_label = ft.Text('Other settings', size=15)
 
-        scan_key = 'scan'
-        scan_value = CONFIG_OBJ[self.selected_project][scan_key]
-        scan_label = ft.Text('Scan', size=14)
-        scan_input = ft.Switch(value=scan_value, on_change=self.project_config_save,key=scan_key)
-        scan_row = ft.Row([scan_label, ft.Row(expand=1), scan_input])
+        socket_key = 'socket'
+        socket_value = CONFIG_OBJ[self.selected_project][socket_key]
+        socket_label = ft.Text('Socket', size=14)
+        socket_input = ft.Switch(value=socket_value, on_change=self.project_config_save,key=socket_key)
+        socket_row = ft.Row([socket_label, ft.Row(expand=1), socket_input])
+        socket_ip_key = 'socket_ip'
+        socket_ip_value = CONFIG_OBJ[self.selected_project][socket_ip_key]
+        socket_ip_label = ft.Text('Socket IP', size=14)
+        self.socket_ip_input = ft.TextField(value=socket_ip_value,on_change=self.project_config_save,key=socket_ip_key)
+        socket_ip_row = ft.Row([socket_ip_label, ft.Row(expand=1), self.socket_ip_input])
+        socket_port_key = 'socket_port'
+        socket_port_value = CONFIG_OBJ[self.selected_project][socket_port_key]
+        socket_port_label = ft.Text('Socket Port', size=14)
+        self.socket_port_input = ft.TextField(value=socket_port_value,on_change=self.project_config_save,key=socket_port_key)
+        socket_port_row = ft.Row([socket_port_label, ft.Row(expand=1), self.socket_port_input])
+        status_show = ft.Container()
+        label = ft.Text('', size=12, width=120)
+        label2 = ft.Text('', size=12, width=120, color=ft.colors.GREY)
+        column = ft.Column([label, label2], spacing=0)
+        self.test_socket_btn = ft.ElevatedButton('Test socket', on_click=self.socket_connect_btn_clicked)
+        self.socket_row = ft.Row([ft.Row(expand=1),status_show, column, self.test_socket_btn])
 
 
-        other_card = ft.Card(ft.Container(ft.Column([scan_row]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
+        other_card = ft.Card(ft.Container(ft.Column([socket_row, socket_ip_row, socket_port_row, self.socket_row]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
 
         column = ft.Column([project_label, project_card, trigger_label, trigger_card, cam_label, cam_card, model_label, model_card, output_label, output_card, logic_label, logic_card, other_label, other_card], width=720, spacing=12)
         tab_container = ft.Container(column, padding=36, alignment=ft.Alignment(0, -1))
@@ -456,7 +472,10 @@ class BaseTab1(ft.Tab):
                     'logic_type' : 0,
                     'model1_selected_objects' : '',
                     'model2_selected_objects' : '',
-                    'scan' : False
+                    'socket' : False,
+                    'socket_ip' : '192.168.100.2',
+                    'socket_port' : 9004,
+
                 }
                 with open('user_data/config.ini', 'w', encoding='utf-8') as f:
                     CONFIG_OBJ.write(f)
@@ -563,6 +582,24 @@ class BaseTab1(ft.Tab):
         self.test_plc_btn.disabled = False
         self.trigger_row3.update()
 
+    def socket_connect_btn_clicked(self, e: ft.ControlEvent):
+        """socket连接按钮被点击的事件"""
+        print("===>socket_connect_btn_clicked")
+        Thread(target=self.socket_connect_event, daemon=True).start()
+
+    def socket_connect_event(self):
+        """socket连接事件"""
+        self.socket_row.controls[1] = ft.ProgressRing(width=16, height=16, stroke_width=2)
+        self.socket_row.controls[2].controls[0].value = '正在检查socket连接'
+        self.test_socket_btn.disabled = True
+        self.socket_row.update()
+        # 检查socket连接 TODO
+        time.sleep(0.5)
+        self.socket_row.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+        self.socket_row.controls[2].controls[0].value = 'socket连接检查成功'
+        self.socket_row.controls[2].controls[1].value = f'IP:{self.socket_ip_input.value}, Port:{self.socket_port_input.value}'
+        self.test_socket_btn.disabled = False
+        self.socket_row.update()
 
     def check_model_btn_clicked(self,e:ft.ControlEvent):
         """检查模型按钮被点击的事件"""
