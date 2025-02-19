@@ -37,8 +37,8 @@ class BaseTab1(ft.Tab):
     def __init__(self):
         """Function页面"""
         super().__init__()
-        self.text = 'Function'
-        self.icon = ft.icons.LOCAL_FLORIST
+        self.text = 'Basic settings'
+        self.icon = ft.icons.SETTINGS_APPLICATIONS
 
         self._init_widgets()
 
@@ -752,8 +752,8 @@ class BaseTab2(ft.Tab):
     def __init__(self):
         """CAM页面"""
         super().__init__()
-        self.text = 'CAM'
-        self.icon = ft.icons.LOCAL_FLORIST
+        self.text = 'CAM test'
+        self.icon = ft.icons.FUNCTIONS
 
         self._init_widgets()
 
@@ -767,8 +767,8 @@ class BaseTab3(ft.Tab):
     def __init__(self):
         """Model页面"""
         super().__init__()
-        self.text ='Model'
-        self.icon = ft.icons.LOCAL_FLORIST
+        self.text ='Model test'
+        self.icon = ft.icons.FUNCTIONS
 
         self._init_widgets()
 
@@ -781,8 +781,8 @@ class BaseTab4(ft.Tab):
     def __init__(self):
         """Output页面"""
         super().__init__()
-        self.text = 'Output'
-        self.icon = ft.icons.LOCAL_FLORIST
+        self.text = 'Output test'
+        self.icon = ft.icons.FUNCTIONS
 
         self._init_widgets()
 
@@ -796,8 +796,8 @@ class BaseTab5(ft.Tab):
     def __init__(self):
         """PLC test页面"""
         super().__init__()
-        self.text = 'PLC test'
-        self.icon = ft.icons.LOCAL_FLORIST
+        self.text = 'Connection test'
+        self.icon = ft.icons.FUNCTIONS
 
         self._init_widgets()
 
