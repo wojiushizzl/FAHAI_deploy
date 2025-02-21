@@ -46,9 +46,33 @@ class One_Screen(ft.Tab):
 
     def _init_widgets(self):
         """初始化组件"""
-        self.content = ft.Container(ft.Text("这是包含基本的图像处理功能的界面，功能即将推出", size=24,
-                                            color=ft.colors.PRIMARY), alignment=ft.Alignment(0, 0))
+        flow_options = CONFIG_OBJ['deploy_function']['project_list'].split(',')[0:-1]
+        current_flow = CONFIG_OBJ['home']['Single_flow']
+        flow_select = ft.Dropdown(
+            options=[ft.dropdown.Option(flow) for flow in flow_options],
+            value=current_flow,
+            width=200,
+            height=40,
+            border_radius=10,
+            on_change=self.flow_select_change)
+        self.flow_result = ft.Markdown()
+        self.flow_result.value = f"当前流程：{CONFIG_OBJ['home']['Single_flow']}"
+        visual_result = ft.Image( width=200, height=200)
+        column = ft.Column([flow_select, self.flow_result], alignment=ft.MainAxisAlignment.CENTER)
+        row = ft.Row([column, visual_result], alignment=ft.MainAxisAlignment.CENTER)
         
+        self.content = row
+
+    def flow_select_change(self, e: ft.ControlEvent):
+        """流程选择改变事件"""
+        print("===>flow_select_change")
+        flow = e.control.value
+        print(flow)
+        self.flow_result.value = f"当前流程：{flow}"
+        CONFIG_OBJ['home']['Single_flow'] = flow
+        with open('user_data/config.ini', 'w', encoding='utf-8') as f:
+            CONFIG_OBJ.write(f)
+
 
 class Two_Screen(ft.Tab):
     def __init__(self):
