@@ -10,6 +10,8 @@ from io import BytesIO
 import base64
 import socket
 import os
+import pandas as pd
+
 class Screen(ft.Container):
     def __init__(self, index: str):
         super().__init__()
@@ -171,12 +173,13 @@ class Screen(ft.Container):
         # check modbus TCP
         plc_output = flow_config['plc_output']
         trigger_type = flow_config['trigger_type']
+        status_output = flow_config['status_output']
         plc_ip = flow_config['plc_ip']
         plc_port = int(flow_config['plc_port'])
 
-        if trigger_type == '0' and plc_output == 'False':
+        if trigger_type == '0' and plc_output == 'False' and status_output == 'False':
             plc_connect_check_result = None
-        elif trigger_type == '1' or plc_output == 'True':
+        elif trigger_type == '1' or plc_output == 'True' or status_output == 'True':
             plc_connect_check_result = self._check_plc_connect(plc_ip, plc_port)
         else:
             plc_connect_check_result = None
@@ -340,11 +343,36 @@ class Screen(ft.Container):
     def _detect_object(self, frame, flow_config):
         """检测物体"""
         print(f'\033[32m[{self.current_flow}] detect object\033[0m')
-        conf_thres = float(flow_config['model1_confidence'])
-        iou_thres = float(flow_config['model1_iou'])
-        img_size = int(flow_config['cam1_size'])
+        if_model_config_use = flow_config['model_config_use']
+        if if_model_config_use == 'True':
+            self.model,conf_thres,iou_thres,img_size= self._load_model_config(flow_config)
+        else:
+            conf_thres = float(flow_config['model1_confidence'])
+            iou_thres = float(flow_config['model1_iou'])
+            img_size = int(flow_config['cam1_size'])
         results = self.model(frame, conf=conf_thres, iou=iou_thres, imgsz=img_size)
         return results
+
+    def _load_model_config(self, flow_config):
+        """加载模型配置"""
+        model_config_file_path = flow_config['model_config_file_path']
+        model_config_file = pd.read_csv(model_config_file_path,header=0)
+        print(f'model_config_file: {model_config_file}')
+        socket_command= b'LON\r\n'
+        self.socket_client.sendall(socket_command)
+        # 接收数据
+        data = self.socket_client.recv(1024)
+        if data:
+            print(f"Received data: {data.decode('utf-8').strip()}")
+        else:
+            print("No data received.")
+        
+        model_path=self.model
+        conf=0.5
+        iou=0.5
+        img_size=640
+        self.selected_objects=['person']
+        return model_path,conf,iou,img_size
 
     def _logic_process(self, result, flow_config):
         """逻辑处理"""

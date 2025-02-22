@@ -306,11 +306,13 @@ class BaseTab1(ft.Tab):
         ], dense=True, text_size=14, expand=1, value=logic_type_value, on_change=self.project_config_save,key=logic_type_key)
         logic_type_row = ft.Row([logic_type_label, ft.Row(expand=1), logic_type_input])
 
+        tooltip = ft.Tooltip(message='select the objects you want to detect, only works when the model config use is close')
+        help_icon = ft.Icon('help', color=ft.colors.GREY, size=16, tooltip=tooltip)
         model1_selected_objects_key = 'model1_selected_objects'
         self.model1_selected_objects_value = CONFIG_OBJ[self.selected_project][model1_selected_objects_key].split(',')[0:-1]
         model1_selected_objects_label = ft.Text('Model1 selected objects', size=14)
         self.model1_selected_objects_show = ft.Text(self.model1_selected_objects_value, size=14)
-        model1_selected_objects_row = ft.Row([model1_selected_objects_label, ft.Row(expand=1), self.model1_selected_objects_show])
+        model1_selected_objects_row = ft.Row([model1_selected_objects_label, help_icon, ft.Row(expand=1), self.model1_selected_objects_show])
 
         status_show = ft.Container()
         label = ft.Text('', size=12, width=100)
@@ -338,12 +340,13 @@ class BaseTab1(ft.Tab):
 
         # 其他设置
         other_label = ft.Text('Other settings', size=15)
-
+        tooltip = ft.Tooltip(message='Socket only works when the model config use is open')
+        help_icon = ft.Icon('help', color=ft.colors.GREY, size=16, tooltip=tooltip)
         socket_key = 'socket'
         socket_value = CONFIG_OBJ[self.selected_project][socket_key]
         socket_label = ft.Text('Socket', size=14)
         socket_input = ft.Switch(value=socket_value, on_change=self.project_config_save,key=socket_key)
-        socket_row = ft.Row([socket_label, ft.Row(expand=1), socket_input])
+        socket_row = ft.Row([socket_label, help_icon, ft.Row(expand=1), socket_input])
         socket_ip_key = 'socket_ip'
         socket_ip_value = CONFIG_OBJ[self.selected_project][socket_ip_key]
         socket_ip_label = ft.Text('Socket IP', size=14)
