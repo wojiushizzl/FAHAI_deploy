@@ -279,7 +279,7 @@ class Screen(ft.Container):
         conf_thres = flow_config['model1_confidence']
         iou_thres = flow_config['model1_iou']
         img_size = flow_config['cam1_size']
-        results = self.model(frame, conf=conf_thres, iou=iou_thres, size=img_size)
+        results = self.model(frame, conf=conf_thres, iou=iou_thres, imgsz=img_size)
         return results
 
     def _logic_process(self, result, flow_config):
