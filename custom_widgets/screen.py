@@ -206,11 +206,11 @@ class Screen(ft.Container):
         # check result update
         self.flow_result.value = f"当前流程：[{self.current_flow}]      "
         self.flow_result.value += f"CAM:{'✅' if cam_check_result == True else '❌' if cam_check_result == False else ' N/A'}   "
-        self.flow_result.value += f"MODEL:{'✅' if model_check_result == True else '❌' if model_check_result == False else 'N/A'}  "
+        self.flow_result.value += f"MODEL:{'✅' if model_check_result == True else '❌' if model_check_result == False else 'N/A'}   "
         self.flow_result.value += f"PLC:{'✅' if plc_connect_check_result == True else '❌' if plc_connect_check_result == False else 'N/A'}   "
         self.flow_result.value += f"GPIO:{'✅' if gpio_output_check_result == True else '❌' if gpio_output_check_result == False else 'N/A'}   "
         self.flow_result.value += f"SOCKET:{'✅' if socket_check_result == True else '❌' if socket_check_result == False else 'N/A'}   "
-        
+        self.flow_result.value += f"SAVE:{'✅' if save_result_check == True else '❌' if save_result_check == False else 'N/A'}    "
         self.page.update()
 
         if (cam_check_result == True or cam_check_result == None) and \
@@ -218,11 +218,11 @@ class Screen(ft.Container):
            (plc_connect_check_result == True or plc_connect_check_result == None) and \
            (gpio_output_check_result == True or gpio_output_check_result == None) and \
            (socket_check_result == True or socket_check_result == None):
-            self.flow_result.value += f" 配置检查通过"
+            self.flow_result.value += f" 配置检查通过 ===> 流程启动"
             self.page.update()
             return True
         else:
-            self.flow_result.value += f" 配置检查失败" 
+            self.flow_result.value += f" 配置检查失败 ===> 流程停止" 
             self.page.update()
             return False
 

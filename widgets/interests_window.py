@@ -205,29 +205,21 @@ class BaseTab1(ft.Tab):
         model1_iou_input = ft.TextField(value=self.model1_iou,on_change=self.project_config_save,key=model1_iou_key)
         model1_row3 = ft.Row([ft.Text('Model1 IOU', size=14), ft.Row(expand=1), model1_iou_input])
 
-
-        # model2_label = ft.Text('Model_2 path', size=15)
-        # model2_path_key = 'model2_path'
-        # model2_confidence_key = 'model2_confidence'
-        # model2_iou_key = 'model2_iou'
-        # model2_path = CONFIG_OBJ[self.selected_project][model2_path_key]
-        # model2_confidence = CONFIG_OBJ[self.selected_project][model2_confidence_key]
-        # model2_iou = CONFIG_OBJ[self.selected_project][model2_iou_key]
-        # import_model2_btn = ft.OutlinedButton(content=ft.Text('Import model', size=12), on_click=self.import_model2_event)
-        # model2_use_key = 'model2_use'
-        # model2_use = CONFIG_OBJ[self.selected_project][model2_use_key]
-        # model2_use_input = ft.Switch(value=model2_use, on_change=self.project_config_save,key=model2_use_key)
-        # model2_row = ft.Row([
-        #     model2_label, help_icon, ft.Row(expand=1), 
-        #     ft.Text(model2_path[:20] + '...' if len(model2_path) > 20 else model2_path, size=10), 
-        #     import_model2_btn, model2_use_input]) 
-        # model2_confidence_input = ft.TextField(value=model2_confidence,on_change=self.project_config_save)
-        # model2_row2 = ft.Row([ft.Text('Model2 Confidence', size=14), ft.Row(expand=1), model2_confidence_input])
-        # model2_iou_input = ft.TextField(value=model2_iou,on_change=self.project_config_save,key=model2_iou_key)
-        # model2_row3 = ft.Row([ft.Text('Model2 IOU', size=14), ft.Row(expand=1), model2_iou_input])
+        tooltip = ft.Tooltip(message='If you open this switch, you can use the model config file to select the models, and above model will be ignored')
+        help_icon = ft.Icon('help', color=ft.colors.GREY, size=16, tooltip=tooltip)
+        model_config_use_key = 'model_config_use'
+        model_config_use = CONFIG_OBJ[self.selected_project][model_config_use_key]
+        model_config_use_input = ft.Switch(value=model_config_use, on_change=self.project_config_save,key=model_config_use_key)
+        model_config_use_row = ft.Row([ft.Text('Model Config Use', size=14), ft.Row(expand=1), model_config_use_input])
+        model_config_file_path_key = 'model_config_file_path'
+        self.model_config_file_path = CONFIG_OBJ[self.selected_project][model_config_file_path_key]
+        model_config_file_path_btn= ft.OutlinedButton(content=ft.Text('Import model config', size=12), on_click=self.import_model_config_event)
+        model_config_file_path_row = ft.Row([ft.Text('Model Config File Path', size=14),help_icon, ft.Row(expand=1), 
+                                             ft.Text(self.model_config_file_path[:20] + '...' if len(self.model_config_file_path) > 20 else self.model_config_file_path, size=10), 
+                                             model_config_file_path_btn])
 
 
-        model_card = ft.Card(ft.Container(ft.Column([model1_row, model1_row2, model1_row3]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
+        model_card = ft.Card(ft.Container(ft.Column([model1_row, model1_row2, model1_row3, model_config_use_row,model_config_file_path_row]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
 
 
         # 输出设置
@@ -458,6 +450,8 @@ class BaseTab1(ft.Tab):
                     'model2_confidence' : 0.5,
                     'model2_iou' : 0.51,
                     'model2_use' : False,
+                    'model_config_use' : False,
+                    'model_config_file_path' : 'c:/Users/Administrator/Desktop/test.csv',
                     'visual' : True,
                     'gpio' : False,
                     'plc_output' : True,
@@ -721,7 +715,30 @@ class BaseTab1(ft.Tab):
         with open('user_data/config.ini', 'w', encoding='utf-8') as f:
             CONFIG_OBJ.write(f)
         self.refresh_config()
-
+    
+    def import_model_config_event(self, e: ft.ControlEvent):
+        """导入模型配置事件"""
+        print("===>import_model_config_event")
+        # 弹窗选择路径 
+        dialog = ft.FilePicker(on_result=self.pick_model_config_finished)
+        self.page.overlay.append(dialog)
+        self.page.update()
+        dialog.pick_files('选择模型配置', allowed_extensions=['csv'])
+        pass
+    
+    def pick_model_config_finished(self, e: ft.FilePickerResultEvent):
+        """选择模型配置结束后触发的事件"""
+        if e.files is None:
+            self.page.overlay.remove(e.control)
+            self.page.update()
+            return
+        model_config_file_path = e.files[0].path
+        self.page.overlay.remove(e.control)
+        self.page.update()
+        CONFIG_OBJ[self.selected_project]['model_config_file_path'] = model_config_file_path
+        with open('user_data/config.ini', 'w', encoding='utf-8') as f:
+            CONFIG_OBJ.write(f)
+        self.refresh_config()
 
     def import_model2_event(self, e: ft.ControlEvent):
         """导入模型事件"""
