@@ -4,6 +4,12 @@ import time
 from threading import Thread
 from ultralytics import YOLO
 import cv2
+import json
+from PIL import Image
+from io import BytesIO
+import base64
+import socket
+import os
 class Screen(ft.Container):
     def __init__(self, index: str):
         super().__init__()
@@ -77,6 +83,9 @@ class Screen(ft.Container):
         if self.cap:
             self.cap.release()
             self.cap = None
+
+        self.visual_result.src_base64 = ''
+        self.page.update()
         print(f"\033[32m===>stop_flow_end [{self.current_flow}]\033[0m")
 
 
@@ -106,14 +115,13 @@ class Screen(ft.Container):
 
         while self.is_running:
             print(f"\033[32m===>start_flow_thread_loop [{self.current_flow}]\033[0m")
-            time.sleep(0.5)
             if flow_config['trigger_type'] == '0':
                 #实时探测模式
                 ret,frame=self._get_frame_from_cam(flow_config)
                 if ret:
-                    result=self._detect_object(frame,flow_config)
-                    ok_or_ng=self._logic_process(result,flow_config)
-                    self._output_result(result,ok_or_ng,flow_config)
+                    res=self._detect_object(frame,flow_config)
+                    ok_or_ng=self._logic_process(res,flow_config)
+                    self._output_result(res,ok_or_ng,flow_config)
                 else:
                     print(f'\033[31m[{self.current_flow}] get frame from CAM failed\033[0m')
                     self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
@@ -161,47 +169,60 @@ class Screen(ft.Container):
         model_use = flow_config['model1_use']
         model_check_result = self._check_model(model_path, model_confidence, model_iou, model_use)
         # check modbus TCP
+        plc_output = flow_config['plc_output']
         trigger_type = flow_config['trigger_type']
         plc_ip = flow_config['plc_ip']
-        plc_port = flow_config['plc_port']
-        if trigger_type == '0':
-            plc_connect_check_result = True
-        elif trigger_type == '1':
+        plc_port = int(flow_config['plc_port'])
+
+        if trigger_type == '0' and plc_output == 'False':
+            plc_connect_check_result = None
+        elif trigger_type == '1' or plc_output == 'True':
             plc_connect_check_result = self._check_plc_connect(plc_ip, plc_port)
         else:
-            plc_connect_check_result = True
+            plc_connect_check_result = None
+        
         # check gpio
         if_use_gpio = flow_config['gpio']   
         if if_use_gpio == 'True':
             gpio_output_point = flow_config['gpio_output_point']
             gpio_output_check_result = self._check_gpio_output(gpio_output_point)
         else:
-            gpio_output_check_result = True
+            gpio_output_check_result = None
 
         #check socket tcp
         if_use_socket = flow_config['socket']
         if if_use_socket == 'True':
             socket_ip = flow_config['socket_ip']
-            socket_port = flow_config['socket_port']
+            socket_port = int(flow_config['socket_port'])
             socket_check_result = self._check_socket(socket_ip, socket_port)
         else:
-            socket_check_result = True
-        
+            socket_check_result = None
+        #check if save
+        if_save_result=flow_config['result_save']
+        if if_save_result =='True':
+            save_result_check = True
+        else:
+            save_result_check = None
         # check result update
-        self.flow_result.value = f"当前流程：[{self.current_flow}] "
-        self.flow_result.value += f"CAM:{'✅' if cam_check_result else '❌'} "
-        self.flow_result.value += f"MODEL:{'✅' if model_check_result else '❌'} "
-        self.flow_result.value += f"PLC:{'✅' if plc_connect_check_result else '❌'} "
-        self.flow_result.value += f"GPIO:{'✅' if gpio_output_check_result else '❌'} "
-        self.flow_result.value += f"SOCKET:{'✅' if socket_check_result else '❌'}"
+        self.flow_result.value = f"当前流程：[{self.current_flow}]      "
+        self.flow_result.value += f"CAM:{'✅' if cam_check_result == True else '❌' if cam_check_result == False else ' N/A'}   "
+        self.flow_result.value += f"MODEL:{'✅' if model_check_result == True else '❌' if model_check_result == False else 'N/A'}  "
+        self.flow_result.value += f"PLC:{'✅' if plc_connect_check_result == True else '❌' if plc_connect_check_result == False else 'N/A'}   "
+        self.flow_result.value += f"GPIO:{'✅' if gpio_output_check_result == True else '❌' if gpio_output_check_result == False else 'N/A'}   "
+        self.flow_result.value += f"SOCKET:{'✅' if socket_check_result == True else '❌' if socket_check_result == False else 'N/A'}   "
+        
         self.page.update()
 
-        if cam_check_result and model_check_result and plc_connect_check_result and gpio_output_check_result and socket_check_result:
+        if (cam_check_result == True or cam_check_result == None) and \
+           (model_check_result == True or model_check_result == None) and \
+           (plc_connect_check_result == True or plc_connect_check_result == None) and \
+           (gpio_output_check_result == True or gpio_output_check_result == None) and \
+           (socket_check_result == True or socket_check_result == None):
             self.flow_result.value += f" 配置检查通过"
             self.page.update()
             return True
         else:
-            self.flow_result.value += f" 配置检查失败"
+            self.flow_result.value += f" 配置检查失败" 
             self.page.update()
             return False
 
@@ -209,14 +230,22 @@ class Screen(ft.Container):
         """检查相机"""
         if cam_use:
             if cam_type == '0':
-                print(f"\033[32m===>check_camera CV camera\033[0m")
-                self.cap = cv2.VideoCapture(int(cam_idx))
-                return True
+                try:
+                    print(f"\033[32m===>check_camera CV camera\033[0m")
+                    self.cap = cv2.VideoCapture(int(cam_idx))
+                    return True
+                except Exception as e:
+                    print(f"===> Error initializing camera: ", e)
+                    return False
             elif cam_type == '1':
-                print(f"\033[32m===>check_camera HIK camera\033[0m")
-                from hik_CAM.getFrame import start_cam, exit_cam, get_frame
-                self.cap, self.stOutFrame, self.data_buf = start_cam(nConnectionNum=int(cam_idx))
-                return True
+                try:
+                    print(f"\033[32m===>check_camera HIK camera\033[0m")
+                    from hik_CAM.getFrame import start_cam, exit_cam, get_frame
+                    self.cap, self.stOutFrame, self.data_buf = start_cam(nConnectionNum=int(cam_idx))
+                    return True
+                except Exception as e:
+                    print(f"===> Error initializing camera: ", e)
+                    return False
             else:
                 return False
         else:
@@ -225,26 +254,57 @@ class Screen(ft.Container):
     def _check_model(self, model_path, model_confidence, model_iou, model_use):
         """检查模型"""
         if model_use:
-            self.model = YOLO(model_path)
-            return True
+            try:
+                self.model = YOLO(model_path)
+                return True
+            except Exception as e:
+                print(f"===> Error initializing model: ", e)
+                return False
         else:
             return True
         
-    def _check_plc_connect(self, plc_ip, plc_port):
+    def _check_plc_connect(self, plc_ip: str, plc_port: int):
         """检查PLC连接"""
-        #TODO  检查PLC连接
-        return True
+        try:
+            from pymodbus.client import ModbusTcpClient
+            self.client = ModbusTcpClient(plc_ip, port=plc_port, slave=1)
+            result = self.client.connect()
+
+            if result:
+                print(f"===>  PLC initialized, IP: ", plc_ip, "port : ", plc_port, "status : ", result)
+            else:
+                print(f"===>  PLC connection failed, IP: ", plc_ip, "port : ", plc_port, "status : ", result)
+
+            return result
+        except Exception as e:
+            print(f"===> Error initializing PLC: ", e)
+            return False
     
     
     def _check_gpio_output(self, gpio_output_point):
         """检查GPIO输出"""
-        #TODO  检查GPIO输出
-        return True
+        gpio_output_point = int(gpio_output_point)  
+        try:    
+            import Jetson.GPIO as GPIO
+            self.GPIO=GPIO
+            self.GPIO.setmode(self.GPIO.BCM)
+            self.GPIO.setwarnings(False)
+            self.GPIO.setup(gpio_output_point, self.GPIO.OUT, initial=self.GPIO.LOW)
+            return True
+        except Exception as e:
+            print(f"GPIO error: {e}")
+            return False
 
-    def _check_socket(self, socket_ip, socket_port):
+    def _check_socket(self, socket_ip: str, socket_port: int):
         """检查socket连接"""
-        #TODO  检查socket连接
-        return True
+        try:
+            self.socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket_client.settimeout(1)
+            self.socket_client.connect((socket_ip, socket_port))
+            return True
+        except Exception as e:
+            print(f"===> Error initializing socket: ", e)
+            return False
 
     def _start_status_output_thread(self, flow_config):
         """启动状态输出线程"""
@@ -289,11 +349,116 @@ class Screen(ft.Container):
     def _logic_process(self, result, flow_config):
         """逻辑处理"""
         print(f'\033[32m[{self.current_flow}] logic process\033[0m')
-        #TODO  逻辑处理 
-        return True, None
+        res_json_load = json.loads(result[0].tojson())
+        result_classes = [r['name'] for r in res_json_load]   
+        print(f'result_classes: {result_classes}')
+        selected_class = flow_config['model1_selected_objects'].split(',')[0:-1]
+        print(f'selected_class: {selected_class}')
+        logic_type = flow_config['logic_type']
+        result=None
+        if logic_type == '0': 
+            ok_or_ng=True
+            #TODO  逻辑处理
+        elif logic_type == '1':
+            ok_or_ng=True
+            #TODO  逻辑处理
+        elif logic_type == '2':
+            ok_or_ng=True
+            #TODO  逻辑处理
+        else:
+            ok_or_ng=False
+        return ok_or_ng
 
-    def _output_result(self, ok_ng, flow_config):
+    def _output_result(self,res, ok_ng: bool, flow_config):
         """输出结果"""
         print(f'\033[32m[{self.current_flow}] output result\033[0m')
-        #TODO  输出结果
-        return True, None
+        if_gpio_output = flow_config['gpio']
+        if_visual_output = flow_config['visual']
+        if_plc_output = flow_config['plc_output']
+        if_save_output = flow_config['result_save']
+
+        if if_gpio_output == 'True':
+            self._gpio_output( ok_ng, flow_config)
+        
+        if if_visual_output == 'True':
+            self._visual_output(res, ok_ng, flow_config)
+        
+        if if_plc_output == 'True':
+            self._plc_output(ok_ng, flow_config)
+        
+        if if_save_output == 'True':
+            self._save_output(res, ok_ng, flow_config)
+
+        
+    def _gpio_output(self, ok_ng: bool, flow_config):
+        """GPIO输出"""
+        gpio_output_point = int(flow_config['gpio_output_point'])
+        if ok_ng:
+            self.GPIO.output(gpio_output_point, self.GPIO.HIGH)
+        else:
+            self.GPIO.output(gpio_output_point, self.GPIO.LOW)
+
+    def _visual_output(self, res, ok_ng: bool, flow_config):
+        """视觉输出"""
+        res_plotted = res[0].plot()
+        if ok_ng:
+            res_plotted = cv2.putText(res_plotted, "Logic check pass", (10, 30),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                        (0, 255, 0), 2, cv2.LINE_AA)
+        else:
+            res_plotted = cv2.putText(res_plotted, "Logic check failed", (10, 30),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                        (0, 0, 255), 2, cv2.LINE_AA)
+        # add time text
+        res_plotted = cv2.putText(res_plotted,
+                                    time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                                    (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                    (0, 0, 255), 2, cv2.LINE_AA)
+
+        # # add self.deploy_PLC_address_2.value text
+        # res_plotted = cv2.putText(res_plotted, PN+'_'+model_name, (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1,
+        #                             (0, 0, 255), 2, cv2.LINE_AA)
+        img_pil = Image.fromarray(res_plotted)
+        img_byte_arr = BytesIO()
+        img_pil.save(img_byte_arr, format="JPEG")
+        img_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+        self.visual_result.src_base64 = img_base64
+        self.page.update()
+
+    def _plc_output(self, ok_ng: bool, flow_config):
+        """PLC输出"""
+        plc_address = int(flow_config['plc_output_address'])
+        plc_value = int(flow_config['plc_output_value'])
+        if ok_ng:
+            self.client.write_register(plc_address, plc_value)
+        else:
+            self.client.write_register(plc_address,0)
+
+    def _save_output(self, res, ok_ng: bool, flow_config):
+        """保存输出"""
+        save_path = flow_config['result_save_path']
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        frame = res[0].plot()
+        res_json = res[0].tojson()
+        md_file_name = self.current_flow + '_' + '.md'
+        if not os.path.exists(os.path.join(save_path, md_file_name)):
+            with open(os.path.join(save_path, md_file_name), 'w') as f:
+                f.write(f'## {self.current_flow} {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))}\n')
+        try:
+            pn = self.current_flow
+            # save frame
+            pic_name = pn + '_' + time.strftime('%Y%m%d%H%M%S', time.localtime(time.time())) + '_' + str(
+                ok_ng) + '.jpg'
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(os.path.join(save_path, pic_name), frame)
+
+            # save all result in one .md file
+            with open(os.path.join(save_path, md_file_name), 'a') as f:
+                f.write(f'## {pn} {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))}\n')
+                f.write(f'### {res_json}\n')
+                f.write(f'### {ok_ng}\n')
+                f.write(f'![{pic_name}](./{pic_name})\n\n')
+
+        except Exception as e:
+            print(f"Error saving results: {e}")
