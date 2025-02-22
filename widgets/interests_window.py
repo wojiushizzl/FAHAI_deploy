@@ -73,7 +73,7 @@ class BaseTab1(ft.Tab):
         self.trigger_input = ft.Dropdown(options=[
             ft.dropdown.Option('0', 'Streaming'),
             ft.dropdown.Option('1', 'Signal-based'),
-            ft.dropdown.Option('2', 'Time-based', disabled=True)
+            ft.dropdown.Option('2', 'Time-based', disabled=False)
         ], dense=True, text_size=14, expand=1, value=self.trigger_idx, on_change=self.trigger_change_event,key=trigger_key)
         row = ft.Row([ft.Text('Select the trigger type (trigger)', size=14), help_icon,ft.Row(expand=1), self.trigger_input])
 

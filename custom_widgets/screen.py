@@ -115,8 +115,8 @@ class Screen(ft.Container):
         if if_use_status_output == 'True':
             self._start_status_output_thread(flow_config)
 
+        print(f"\033[32m===>start_flow_thread_loop [{self.current_flow}]\033[0m")
         while self.is_running:
-            print(f"\033[32m===>start_flow_thread_loop [{self.current_flow}]\033[0m")
             if flow_config['trigger_type'] == '0':
                 #实时探测模式
                 ret,frame=self._get_frame_from_cam(flow_config)
@@ -132,26 +132,35 @@ class Screen(ft.Container):
                     self.stop_flow(e)
             elif flow_config['trigger_type'] == '1':
                 #触发器模式
-                print(f'\033[32m[{self.current_flow}] listen trigger\033[0m')
-                time.sleep(0.5)
-                print(f'\033[32m[{self.current_flow}] get frame from CAM\033[0m')
-                time.sleep(0.5)
-                print(f'\033[32m[{self.current_flow}] detect object\033[0m')
-                time.sleep(0.5)
-                print(f'\033[32m[{self.current_flow}] logic process\033[0m')
-                time.sleep(0.5)
-                print(f'\033[32m[{self.current_flow}] output result\033[0m')
-                time.sleep(0.5)
+                trigger=self._listen_trigger(flow_config)
+                if trigger:
+                    ret,frame=self._get_frame_from_cam(flow_config)
+                    if ret:
+                        res=self._detect_object(frame,flow_config)
+                        ok_or_ng=self._logic_process(res,flow_config)
+                        self._output_result(res,ok_or_ng,flow_config)
+                    else:
+                        print(f'\033[31m[{self.current_flow}] get frame from CAM failed\033[0m')
+                        self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
+                        self.page.update()
+                        self.flow_thread=None
+                        self.stop_flow(e)
+                else:
+                    continue
             elif flow_config['trigger_type'] == '2':
                 #定时探测模式
-                print(f'\033[32m[{self.current_flow}] get frame from CAM\033[0m')
-                time.sleep(0.5)
-                print(f'\033[32m[{self.current_flow}] object detected\033[0m')
-                time.sleep(0.5)
-                print(f'\033[32m[{self.current_flow}] logic process\033[0m')
-                time.sleep(0.5)
-                print(f'\033[32m[{self.current_flow}] output result\033[0m')
-                time.sleep(0.5)
+                ret,frame=self._get_frame_from_cam(flow_config)
+                if ret:
+                    res=self._detect_object(frame,flow_config)
+                    ok_or_ng=self._logic_process(res,flow_config)
+                    self._output_result(res,ok_or_ng,flow_config)
+                else:
+                    print(f'\033[31m[{self.current_flow}] get frame from CAM failed\033[0m')
+                    self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
+                    self.page.update()
+                    self.flow_thread=None
+                    self.stop_flow(e)
+                time.sleep(1)
                 
 
     def check_config(self, flow_config):
@@ -193,8 +202,9 @@ class Screen(ft.Container):
             gpio_output_check_result = None
 
         #check socket tcp
+        if_use_model_config = flow_config['model_config_use']
         if_use_socket = flow_config['socket']
-        if if_use_socket == 'True':
+        if if_use_socket == 'True' or if_use_model_config == 'True':
             socket_ip = flow_config['socket_ip']
             socket_port = int(flow_config['socket_port'])
             socket_check_result = self._check_socket(socket_ip, socket_port)
@@ -309,19 +319,59 @@ class Screen(ft.Container):
             print(f"===> Error initializing socket: ", e)
             return False
 
+    def _listen_trigger(self, flow_config):
+        """监听触发器"""
+        print(f"\033[32m===>listen_trigger [{self.current_flow}]\033[0m")
+        address = int(flow_config['plc_trigger_address'])
+        count = int(flow_config['plc_trigger_count'])
+        slave=1
+        self.client.connect()
+        result = self.client.read_holding_registers(address, count,slave=1)
+        type=flow_config['signal_type']
+        # 当type为0时，监听result的上升延信号
+        if type == '0':
+            # 记录上一次的值
+            if not hasattr(self, 'last_trigger_value'):
+                self.last_trigger_value = 0
+            
+            # 获取当前值
+            current_value = result.registers[0] if result and result.registers else 0
+            
+            # 检测上升沿 - 从0变为1
+            if current_value == 1 and self.last_trigger_value == 0:
+                self.last_trigger_value = current_value
+                return True
+            
+            # 更新上一次的值
+            self.last_trigger_value = current_value
+            return False
+        else:
+            # 记录上一次的值
+            if not hasattr(self, 'last_trigger_value'):
+                self.last_trigger_value = 1
+            
+            # 获取当前值
+            current_value = result.registers[0] if result and result.registers else 1   
+            
+            # 检测下降沿 - 从1变为0
+            if current_value == 0 and self.last_trigger_value == 1:
+                self.last_trigger_value = current_value
+                return True
+            
+            # 更新上一次的值
+            self.last_trigger_value = current_value
+            return False    
     def _start_status_output_thread(self, flow_config):
         """启动状态输出线程"""
-        #TODO  启动状态输出线程
         self.status_output_thread = Thread(target=self._status_output_thread, args=(flow_config,))
         self.status_output_thread.start()
 
     def _status_output_thread(self, flow_config):
         """状态输出线程"""
-        plc_ip = flow_config['plc_ip']
-        plc_port = flow_config['plc_port']
-        status_output_address = flow_config['status_output_address']
-        status_output_value = flow_config['status_output_value']
+        status_output_address = int(flow_config['status_output_address'])
+        status_output_value = int(flow_config['status_output_value'])
         while self.is_running:
+            self.client.write_register(status_output_address, status_output_value)
             print(f"status_out_put : {status_output_address} {status_output_value}")
             time.sleep(3)
         self.status_output_thread = None
@@ -345,7 +395,8 @@ class Screen(ft.Container):
         print(f'\033[32m[{self.current_flow}] detect object\033[0m')
         if_model_config_use = flow_config['model_config_use']
         if if_model_config_use == 'True':
-            self.model,conf_thres,iou_thres,img_size= self._load_model_config(flow_config)
+            model_path,conf_thres,iou_thres,img_size= self._load_model_config(flow_config)
+            self.model = YOLO(model_path)
         else:
             conf_thres = float(flow_config['model1_confidence'])
             iou_thres = float(flow_config['model1_iou'])
@@ -356,46 +407,56 @@ class Screen(ft.Container):
     def _load_model_config(self, flow_config):
         """加载模型配置"""
         model_config_file_path = flow_config['model_config_file_path']
-        model_config_file = pd.read_csv(model_config_file_path,header=0)
-        print(f'model_config_file: {model_config_file}')
-        socket_command= b'LON\r\n'
-        self.socket_client.sendall(socket_command)
-        # 接收数据
-        data = self.socket_client.recv(1024)
-        if data:
-            print(f"Received data: {data.decode('utf-8').strip()}")
-        else:
-            print("No data received.")
-        
-        model_path=self.model
-        conf=0.5
-        iou=0.5
-        img_size=640
-        self.selected_objects=['person']
+        model_config_file = pd.read_csv(model_config_file_path,header=0,index_col=0)
+        #TODO  socket 获取PN
+        # socket_command= b'LON\r\n'
+        # self.socket_client.sendall(socket_command)
+        # # 接收数据
+        # data = self.socket_client.recv(1024)
+        # if data:
+        #     print(f"Received data: {data.decode('utf-8').strip()}")
+        # else:
+        #     print("No data received.")
+        data='7127178-7716500597'
+        data_PN=int(data[-10:])
+        print(f'data_PN: {data_PN}')
+        model_path=model_config_file.loc[data_PN]['model']
+        conf=float(model_config_file.loc[data_PN]['conf'])
+        iou=float(model_config_file.loc[data_PN]['iou'])
+        img_size=int(model_config_file.loc[data_PN]['imgsz'])
+        self.selected_objects=model_config_file.loc[data_PN]['select_objects'].split(',')[0:-1]
+
+        print(f'model_path: {model_path}')
+        print(f'conf: {conf}')
+        print(f'iou: {iou}')
+        print(f'img_size: {img_size}')
+        print(f'selected_objects: {self.selected_objects}')
         return model_path,conf,iou,img_size
 
     def _logic_process(self, result, flow_config):
         """逻辑处理"""
         print(f'\033[32m[{self.current_flow}] logic process\033[0m')
         res_json_load = json.loads(result[0].tojson())
-        result_classes = [r['name'] for r in res_json_load]   
-        print(f'result_classes: {result_classes}')
-        selected_class = flow_config['model1_selected_objects'].split(',')[0:-1]
-        print(f'selected_class: {selected_class}')
-        logic_type = flow_config['logic_type']
-        result=None
-        if logic_type == '0': 
-            ok_or_ng=True
-            #TODO  逻辑处理
-        elif logic_type == '1':
-            ok_or_ng=True
-            #TODO  逻辑处理
-        elif logic_type == '2':
-            ok_or_ng=True
-            #TODO  逻辑处理
+        detected_objects = [r['name'] for r in res_json_load]   
+        print(f'detected_objects: {detected_objects}')
+        if_model_config_use = flow_config['model_config_use']
+        if if_model_config_use == 'True':
+            self.selected_objects = self.selected_objects
         else:
-            ok_or_ng=False
-        return ok_or_ng
+            self.selected_objects = flow_config['model1_selected_objects'].split(',')[0:-1]
+
+        print(f'selected_objects: {self.selected_objects}')
+        logic_type = flow_config['logic_type']
+        if logic_type == '0':  # detected objects [in] selected_objects
+            check_result = all(item in self.selected_objects for item in detected_objects) and len(detected_objects) > 0
+
+        elif logic_type == '1':  # selected_objects [in] detected objects
+            check_result = all(item in detected_objects for item in self.selected_objects) and len(detected_objects) > 0
+        elif logic_type == '2':  # selected_objects [=] detected objects
+            check_result = len(detected_objects) == len(self.selected_objects) and all(item in detected_objects for item in self.selected_objects)
+        else:
+            check_result = False
+        return check_result
 
     def _output_result(self,res, ok_ng: bool, flow_config):
         """输出结果"""
