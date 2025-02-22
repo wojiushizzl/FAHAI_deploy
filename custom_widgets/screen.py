@@ -73,6 +73,10 @@ class Screen(ft.Container):
         if self.flow_thread:
             self.flow_thread.join()
             self.flow_thread = None
+
+        if self.cap:
+            self.cap.release()
+            self.cap = None
         print(f"\033[32m===>stop_flow_end [{self.current_flow}]\033[0m")
 
 
@@ -107,12 +111,9 @@ class Screen(ft.Container):
                 #实时探测模式
                 ret,frame=self._get_frame_from_cam(flow_config)
                 if ret:
-                    print(f'\033[32m[{self.current_flow}] object detected\033[0m')
                     result=self._detect_object(frame,flow_config)
-                    print(f'\033[32m[{self.current_flow}] logic process\033[0m')
-                    ok_ng=self._logic_process(result,flow_config)
-                    print(f'\033[32m[{self.current_flow}] output result\033[0m')
-                    self._output_result(ok_ng,flow_config)
+                    ok_or_ng=self._logic_process(result,flow_config)
+                    self._output_result(result,ok_or_ng,flow_config)
                 else:
                     print(f'\033[31m[{self.current_flow}] get frame from CAM failed\033[0m')
                     self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
@@ -270,24 +271,29 @@ class Screen(ft.Container):
         elif flow_config['cam1_type'] == "1":
             from hik_CAM.getFrame import start_cam, exit_cam, get_frame
             ret, frame = get_frame(self.cap, self.stOutFrame)
-        # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        try:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        except cv2.error as e:
+            print(f"OpenCV error: {e}")
         return ret, frame
 
     def _detect_object(self, frame, flow_config):
         """检测物体"""
         print(f'\033[32m[{self.current_flow}] detect object\033[0m')
-        conf_thres = flow_config['model1_confidence']
-        iou_thres = flow_config['model1_iou']
-        img_size = flow_config['cam1_size']
+        conf_thres = float(flow_config['model1_confidence'])
+        iou_thres = float(flow_config['model1_iou'])
+        img_size = int(flow_config['cam1_size'])
         results = self.model(frame, conf=conf_thres, iou=iou_thres, imgsz=img_size)
         return results
 
     def _logic_process(self, result, flow_config):
         """逻辑处理"""
+        print(f'\033[32m[{self.current_flow}] logic process\033[0m')
         #TODO  逻辑处理 
         return True, None
 
     def _output_result(self, ok_ng, flow_config):
         """输出结果"""
+        print(f'\033[32m[{self.current_flow}] output result\033[0m')
         #TODO  输出结果
         return True, None
