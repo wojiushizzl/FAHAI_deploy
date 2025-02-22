@@ -115,6 +115,9 @@ class Screen(ft.Container):
                     self._output_result(ok_ng,flow_config)
                 else:
                     print(f'\033[31m[{self.current_flow}] get frame from CAM failed\033[0m')
+                    self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
+                    self.page.update()
+                    self.flow_thread=None
                     self.stop_flow(e)
             elif flow_config['trigger_type'] == '1':
                 #触发器模式
@@ -206,11 +209,12 @@ class Screen(ft.Container):
         if cam_use:
             if cam_type == '0':
                 print(f"\033[32m===>check_camera CV camera\033[0m")
-                self.cap = cv2.VideoCapture(cam_idx)
+                self.cap = cv2.VideoCapture(int(cam_idx))
                 return True
             elif cam_type == '1':
                 print(f"\033[32m===>check_camera HIK camera\033[0m")
-                self.cap, self.stOutFrame, self.data_buf = start_cam(nConnectionNum=cam_idx)
+                from hik_CAM.getFrame import start_cam, exit_cam, get_frame
+                self.cap, self.stOutFrame, self.data_buf = start_cam(nConnectionNum=int(cam_idx))
                 return True
             else:
                 return False
