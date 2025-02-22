@@ -17,16 +17,16 @@ class Screen(ft.Container):
         select_flow_label = ft.Text('Select the flow', size=15)
         flow_options = CONFIG_OBJ['deploy_function']['project_list'].split(',')[0:-1]
         flow_options = [ft.dropdown.Option(i, i) for i in flow_options]
-        current_flow = CONFIG_OBJ['home'][self.index]
+        self.current_flow = CONFIG_OBJ['home'][self.index]
         flow_select = ft.Dropdown(
             options=flow_options,
-            value=current_flow,
+            value=self.current_flow,
             dense=True,
             text_size=14,
             expand=1,
             on_change=self.flow_select_change)
         self.flow_result = ft.Markdown()
-        self.flow_result.value = f"当前流程：{CONFIG_OBJ['home'][self.index]}"
+        self.flow_result.value = f"当前流程：{self.current_flow}"
         self.visual_result = ft.Image(src='/images/python4.png',filter_quality=ft.FilterQuality.MEDIUM,expand=1)
         self.start_stop_btn = ft.IconButton(icon=ft.icons.PLAY_ARROW, on_click=self.on_start_stop_btn_click)
         self.progress_bar = ft.ProgressBar( height=3, visible=False,expand=1)
@@ -48,6 +48,7 @@ class Screen(ft.Container):
         flow = e.control.value
         self.flow_result.value = f"当前流程：{flow}"
         self.page.update()
+        self.current_flow = flow
         CONFIG_OBJ['home'][self.index] = flow
         with open('user_data/config.ini', 'w', encoding='utf-8') as f:
             CONFIG_OBJ.write(f)
@@ -62,7 +63,7 @@ class Screen(ft.Container):
 
     def stop_flow(self, e: ft.ControlEvent):
         """停止流程"""
-        print("===>stop_flow")
+        print(f"\033[32m===>stop_flow [{self.current_flow}]\033[0m")
         self.start_stop_btn.icon = ft.icons.PLAY_ARROW
         self.progress_bar.visible = False
         self.page.update()
@@ -71,12 +72,12 @@ class Screen(ft.Container):
         if self.flow_thread:
             self.flow_thread.join()
             self.flow_thread = None
-        print("===>stop_flow_end")
+        print(f"\033[32m===>stop_flow_end [{self.current_flow}]\033[0m")
 
 
     def start_flow(self, e: ft.ControlEvent):
         """开始流程"""
-        print("===>start_flow")
+        print(f"\033[32m===>start_flow [{self.current_flow}]\033[0m")
         self.start_stop_btn.icon = ft.icons.STOP
         self.progress_bar.visible = True
         self.page.update()
@@ -87,20 +88,20 @@ class Screen(ft.Container):
 
     def start_flow_thread(self, e: ft.ControlEvent):
         """开始流程线程"""
-        print("===>start_flow_thread")
+        print(f"\033[32m===>start_flow_thread [{self.current_flow}]\033[0m")
         while self.is_running:
-            print("===>start_flow_thread_loop")
+            print(f"\033[32m===>start_flow_thread_loop [{self.current_flow}]\033[0m")
             time.sleep(0.5)
-            print('listen trigger')
+            print(f'\033[32m[{self.current_flow}] listen trigger\033[0m')
             time.sleep(0.5)
-            print('detected trigger')
+            print(f'\033[32m[{self.current_flow}] detected trigger\033[0m')
             time.sleep(0.5)
-            print('get frame from CAM')
+            print(f'\033[32m[{self.current_flow}] get frame from CAM\033[0m')
             time.sleep(0.5)
-            print('detect object')
+            print(f'\033[32m[{self.current_flow}] detect object\033[0m')
             time.sleep(0.5)
-            print('logic process')
+            print(f'\033[32m[{self.current_flow}] logic process\033[0m')
             time.sleep(0.5)
-            print('output result')
+            print(f'\033[32m[{self.current_flow}] output result\033[0m')
             time.sleep(0.5)
 

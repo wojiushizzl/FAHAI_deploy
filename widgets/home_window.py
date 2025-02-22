@@ -53,9 +53,6 @@ class One_Screen(ft.Tab):
         self.content = ft.Column([self.screen1],alignment=ft.MainAxisAlignment.CENTER)
 
 
-
-
-
 class Two_Screen(ft.Tab):
     def __init__(self):
         """双通道页面"""
