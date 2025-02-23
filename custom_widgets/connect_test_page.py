@@ -1,6 +1,8 @@
 import flet as ft
 import time
 from threading import Thread
+import socket
+from pymodbus.client import ModbusTcpClient
 
 
 
@@ -78,17 +80,20 @@ class ConnectTestPage(ft.Tab):
         socket_connect_label = ft.Text('Socket Connect test', size=12)
         socket_connect_ip_label = ft.Text('Socket Connect IP', size=12)
         socket_connect_port_label = ft.Text('Socket Connect Port', size=12)
+        socket_connect_buffersize_label = ft.Text('Socket Connect Buffer Size', size=12)
         self.socket_connect_ip_input = ft.TextField(value='192.168.1.1',text_size=12)
         self.socket_connect_port_input = ft.TextField(value='502',text_size=12)
+        self.socket_connect_buffersize_input = ft.TextField(value='1024',text_size=12)
         row1 = ft.Row([socket_connect_ip_label, ft.Row(expand=1), self.socket_connect_ip_input ])
         row2 = ft.Row([socket_connect_port_label, ft.Row(expand=1), self.socket_connect_port_input ])
+        row3 = ft.Row([socket_connect_buffersize_label, ft.Row(expand=1), self.socket_connect_buffersize_input ])
         status_show = ft.Container()
         label = ft.Text('', size=12, width=100)
         label2 = ft.Text('', size=12, width=100, color=ft.colors.GREY)
         column = ft.Column([label, label2], spacing=0)
         self.socket_connect_test_btn = ft.ElevatedButton('socket connect test', on_click=self.socket_connect_test_btn_clicked)
         self.socket_connect_test_row3 = ft.Row([ft.Row(expand=1),status_show, column, self.socket_connect_test_btn])
-        card_content = ft.Container(ft.Column([row1, row2, self.socket_connect_test_row3], spacing=20), padding=20)
+        card_content = ft.Container(ft.Column([row1, row2, row3, self.socket_connect_test_row3], spacing=20), padding=20) 
         card = ft.Card(card_content, variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
         column = ft.Column([socket_connect_label,card], width=720, spacing=12)
         socket_container = ft.Container(column, padding=36, alignment=ft.Alignment(0, -1))
@@ -129,13 +134,30 @@ class ConnectTestPage(ft.Tab):
         self.modbus_connect_test_row3.controls[2].controls[0].value = '正在检查PLC连接'
         self.modbus_connect_test_btn.disabled = True
         self.modbus_connect_test_row3.update()
-        # 检查plc连接 TODO
-        time.sleep(0.5)
-        self.modbus_connect_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
-        self.modbus_connect_test_row3.controls[2].controls[0].value = 'PLC连接检查成功'
-        self.modbus_connect_test_row3.controls[2].controls[1].value = f'IP:{self.modbus_connect_ip_input.value}, Port:{self.modbus_connect_port_input.value}'
-        self.modbus_connect_test_btn.disabled = False
-        self.modbus_connect_test_row3.update()
+        try:
+            client = ModbusTcpClient(self.modbus_connect_ip_input.value, port=int(self.modbus_connect_port_input.value), slave=1)
+            result = client.connect()
+            if result:
+                self.modbus_connect_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                self.modbus_connect_test_row3.controls[2].controls[0].value = 'PLC连接检查成功'
+                self.modbus_connect_test_row3.controls[2].controls[1].value = f'IP:{self.modbus_connect_ip_input.value}, Port:{self.modbus_connect_port_input.value}'
+                self.modbus_connect_test_btn.disabled = False
+                self.modbus_connect_test_row3.update()
+            else:
+                self.modbus_connect_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                self.modbus_connect_test_row3.controls[2].controls[0].value = 'PLC连接检查失败'
+                self.modbus_connect_test_row3.controls[2].controls[1].value = f'IP:{self.modbus_connect_ip_input.value}, Port:{self.modbus_connect_port_input.value}'
+                self.modbus_connect_test_btn.disabled = False
+                self.modbus_connect_test_row3.update()
+        except Exception as e:
+            self.modbus_connect_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+            self.modbus_connect_test_row3.controls[2].controls[0].value = 'PLC连接检查失败'
+            self.modbus_connect_test_row3.controls[2].controls[1].value = f'Error:{e}'
+            self.modbus_connect_test_btn.disabled = False
+            self.modbus_connect_test_row3.update()
+        finally:    
+            client.close()
+
 
     def socket_connect_test_btn_clicked(self, e: ft.ControlEvent):
         """socket连接按钮被点击的事件"""
@@ -149,13 +171,30 @@ class ConnectTestPage(ft.Tab):
         self.socket_connect_test_row3.controls[2].controls[0].value = '正在检查socket连接'
         self.socket_connect_test_btn.disabled = True
         self.socket_connect_test_row3.update()
-        # 检查socket连接 TODO
-        time.sleep(0.5)
-        self.socket_connect_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
-        self.socket_connect_test_row3.controls[2].controls[0].value = 'socket连接检查成功'
-        self.socket_connect_test_row3.controls[2].controls[1].value = f'IP:{self.socket_connect_ip_input.value}, Port:{self.socket_connect_port_input.value}'
-        self.socket_connect_test_btn.disabled = False
-        self.socket_connect_test_row3.update()
+        try:
+            # 创建socket对象
+            tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            tcp_socket.settimeout(1)
+            print(f"Connecting to {self.socket_connect_ip_input.value}:{self.socket_connect_port_input.value}...")
+            ip = self.socket_connect_ip_input.value
+            port = int(self.socket_connect_port_input.value)
+            # 连接到设备
+            tcp_socket.connect((ip, port))
+            print("Connected successfully!")
+            self.socket_connect_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+            self.socket_connect_test_row3.controls[2].controls[0].value = 'socket连接检查成功'
+            self.socket_connect_test_row3.controls[2].controls[1].value = f'IP:{self.socket_connect_ip_input.value}, Port:{self.socket_connect_port_input.value}'
+            self.socket_connect_test_btn.disabled = False
+            self.socket_connect_test_row3.update()
+        except socket.error as e:
+            self.socket_connect_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+            self.socket_connect_test_row3.controls[2].controls[0].value = 'socket连接检查失败'
+            self.socket_connect_test_row3.controls[2].controls[1].value = f'Error:{e}'
+            self.socket_connect_test_btn.disabled = False
+            self.socket_connect_test_row3.update()
+        finally:
+            tcp_socket.close()
+
 
     def modbus_read_test_btn_clicked(self, e: ft.ControlEvent):
         """modbus读取按钮被点击的事件"""
@@ -168,13 +207,40 @@ class ConnectTestPage(ft.Tab):
         self.modbus_read_test_row3.controls[2].controls[0].value = '正在检查modbus读取'
         self.modbus_read_test_btn.disabled = True
         self.modbus_read_test_row3.update()
-        # modbus读取 TODO
-        time.sleep(0.5) 
-        self.modbus_read_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
-        self.modbus_read_test_row3.controls[2].controls[0].value = 'modbus读取检查成功'
-        self.modbus_read_test_row3.controls[2].controls[1].value = f'Address:{self.modbus_read_address_input.value}, Count:{self.modbus_read_count_input.value}, Slave:{self.modbus_read_slave_input.value}'
-        self.modbus_read_test_btn.disabled = False
-        self.modbus_read_test_row3.update()
+        try:
+            client = ModbusTcpClient(self.modbus_connect_ip_input.value, port=int(self.modbus_connect_port_input.value), slave=1)
+            result = client.connect()
+            if result:
+                address = int(self.modbus_read_address_input.value)
+                count = int(self.modbus_read_count_input.value)
+                slave = int(self.modbus_read_slave_input.value)
+                read_result = client.read_holding_registers(address, count, slave)
+                if read_result:
+                    self.modbus_read_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                    self.modbus_read_test_row3.controls[2].controls[0].value = 'modbus读取检查成功'
+                    self.modbus_read_test_row3.controls[2].controls[1].value = f'Read Result:{read_result.registers}'
+                    self.modbus_read_test_btn.disabled = False
+                    self.modbus_read_test_row3.update()
+                else:
+                    self.modbus_read_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                    self.modbus_read_test_row3.controls[2].controls[0].value = 'modbus读取检查失败'
+                    self.modbus_read_test_row3.controls[2].controls[1].value = f'Read Result:{read_result.registers}'
+                    self.modbus_read_test_btn.disabled = False
+                    self.modbus_read_test_row3.update()
+            else:
+                self.modbus_read_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                self.modbus_read_test_row3.controls[2].controls[0].value = 'modbus读取检查失败'
+                self.modbus_read_test_row3.controls[2].controls[1].value = f'IP:{self.modbus_connect_ip_input.value}, Port:{self.modbus_connect_port_input.value}'
+                self.modbus_read_test_btn.disabled = False
+                self.modbus_read_test_row3.update()
+        except Exception as e:
+                self.modbus_read_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                self.modbus_read_test_row3.controls[2].controls[0].value = 'modbus读取检查失败'
+                self.modbus_read_test_row3.controls[2].controls[1].value = f'Error:{e}'
+                self.modbus_read_test_btn.disabled = False
+                self.modbus_read_test_row3.update()
+        finally:
+            client.close()  
         
     def modbus_write_test_btn_clicked(self, e: ft.ControlEvent):
         """modbus写入按钮被点击的事件"""
@@ -187,13 +253,39 @@ class ConnectTestPage(ft.Tab):
         self.modbus_write_test_row3.controls[2].controls[0].value = '正在检查modbus写入'
         self.modbus_write_test_btn.disabled = True
         self.modbus_write_test_row3.update()
-        # modbus写入 TODO
-        time.sleep(0.5)
-        self.modbus_write_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
-        self.modbus_write_test_row3.controls[2].controls[0].value = 'modbus写入检查成功'
-        self.modbus_write_test_row3.controls[2].controls[1].value = f'Address:{self.modbus_write_address_input.value}, Value:{self.modbus_write_value_input.value}'
-        self.modbus_write_test_btn.disabled = False
-        self.modbus_write_test_row3.update()    
+        try:
+            client = ModbusTcpClient(self.modbus_connect_ip_input.value, port=int(self.modbus_connect_port_input.value), slave=1)
+            result = client.connect()
+            if result:
+                address = int(self.modbus_write_address_input.value)
+                value = int(self.modbus_write_value_input.value)
+                write_result = client.write_registers(address, value)
+                if write_result:
+                    self.modbus_write_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                    self.modbus_write_test_row3.controls[2].controls[0].value = 'modbus写入检查成功'
+                    self.modbus_write_test_row3.controls[2].controls[1].value = f'Address:{self.modbus_write_address_input.value}, Value:{self.modbus_write_value_input.value}'
+                    self.modbus_write_test_btn.disabled = False
+                    self.modbus_write_test_row3.update()
+                else:
+                    self.modbus_write_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                    self.modbus_write_test_row3.controls[2].controls[0].value = 'modbus写入检查失败'
+                    self.modbus_write_test_row3.controls[2].controls[1].value = f'Address:{self.modbus_write_address_input.value}, Value:{self.modbus_write_value_input.value}'
+                    self.modbus_write_test_btn.disabled = False
+                    self.modbus_write_test_row3.update()    
+            else:
+                self.modbus_write_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                self.modbus_write_test_row3.controls[2].controls[0].value = 'modbus写入检查失败'
+                self.modbus_write_test_row3.controls[2].controls[1].value = f'IP:{self.modbus_connect_ip_input.value}, Port:{self.modbus_connect_port_input.value}'
+                self.modbus_write_test_btn.disabled = False
+                self.modbus_write_test_row3.update()
+        except Exception as e:
+                self.modbus_write_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                self.modbus_write_test_row3.controls[2].controls[0].value = 'modbus写入检查失败'
+                self.modbus_write_test_row3.controls[2].controls[1].value = f'Error:{e}'
+                self.modbus_write_test_btn.disabled = False
+                self.modbus_write_test_row3.update()
+        finally:
+            client.close()  
 
     def socket_command_test_btn_clicked(self, e: ft.ControlEvent):
         """socket命令按钮被点击的事件"""
@@ -206,10 +298,44 @@ class ConnectTestPage(ft.Tab):
         self.socket_command_test_row3.controls[2].controls[0].value = '正在检查socket命令'
         self.socket_command_test_btn.disabled = True
         self.socket_command_test_row3.update()
-        # socket命令 TODO
-        time.sleep(0.5)
-        self.socket_command_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
-        self.socket_command_test_row3.controls[2].controls[0].value = 'socket命令检查成功'
-        self.socket_command_test_row3.controls[2].controls[1].value = f'Address:{self.socket_command_address_input.value}'
-        self.socket_command_test_btn.disabled = False
-        self.socket_command_test_row3.update()  
+        try:
+            # 创建socket对象
+            tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            tcp_socket.settimeout(1)
+            print(f"Connecting to {self.socket_connect_ip_input.value}:{self.socket_connect_port_input.value}...")
+            ip = self.socket_connect_ip_input.value
+            port = int(self.socket_connect_port_input.value)
+            # 连接到设备
+            tcp_socket.connect((ip, port))
+            print("Connected successfully!")
+
+            # 发送命令
+            command = self.socket_command_address_input.value
+            tcp_socket.sendall(command.encode('utf-8'))
+            print(f"Sent command: {command}")
+
+            buffer_size = int(self.socket_connect_buffersize_input.value)   
+            # 接收响应
+            response = tcp_socket.recv(buffer_size)
+            if response:
+                print(f"Received response: {response.decode('utf-8')}")
+                self.socket_command_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                self.socket_command_test_row3.controls[2].controls[0].value = 'socket命令检查成功'
+                self.socket_command_test_row3.controls[2].controls[1].value = f'Response:{response.decode("utf-8")}'
+                self.socket_command_test_btn.disabled = False
+                self.socket_command_test_row3.update()      
+            else:
+                self.socket_command_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+                self.socket_command_test_row3.controls[2].controls[0].value = 'socket命令检查失败'
+                self.socket_command_test_row3.controls[2].controls[1].value = f'Response:{response.decode("utf-8")}'
+                self.socket_command_test_btn.disabled = False
+                self.socket_command_test_row3.update()  
+        except Exception as e:
+            self.socket_command_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
+            self.socket_command_test_row3.controls[2].controls[0].value = 'socket命令检查失败'
+            self.socket_command_test_row3.controls[2].controls[1].value = f'Error:{e}'
+            self.socket_command_test_btn.disabled = False
+            self.socket_command_test_row3.update()
+        finally:
+            # 关闭连接
+            tcp_socket.close()

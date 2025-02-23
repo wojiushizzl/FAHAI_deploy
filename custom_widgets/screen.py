@@ -36,7 +36,7 @@ class Screen(ft.Container):
             on_change=self.flow_select_change)
         self.flow_result = ft.Markdown()
         self.flow_result.value = f"当前流程：{self.current_flow}"
-        self.visual_result = ft.Image(src='/images/python4.png',filter_quality=ft.FilterQuality.MEDIUM,expand=1)
+        self.visual_result = ft.Image(src='/images/python4.png',fit=ft.ImageFit.CONTAIN,expand=1)
         self.start_stop_btn = ft.IconButton(icon=ft.icons.PLAY_ARROW, on_click=self.on_start_stop_btn_click)
         self.progress_bar = ft.ProgressBar( height=3, visible=False,expand=1)
 
