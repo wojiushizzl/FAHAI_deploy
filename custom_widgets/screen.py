@@ -11,6 +11,14 @@ import base64
 import socket
 import os
 import pandas as pd
+import logging
+
+#save log to file
+logging.basicConfig(level=logging.INFO, filename='log.log')
+logger = logging.getLogger(__name__)
+
+
+
 
 class Screen(ft.Container):
     def __init__(self, index: str):
@@ -53,7 +61,7 @@ class Screen(ft.Container):
     
     def flow_select_change(self, e: ft.ControlEvent):
         """流程选择改变事件"""
-        print("===>flow_select_change")
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Flow Select Change to [{e.control.value}]")
         flow = e.control.value
         self.flow_result.value = f"当前流程：{flow}"
         self.page.update()
@@ -72,7 +80,7 @@ class Screen(ft.Container):
 
     def stop_flow(self, e: ft.ControlEvent):
         """停止流程"""
-        print(f"\033[32m===>stop_flow [{self.current_flow}]\033[0m")
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Stop Flow")
         self.start_stop_btn.icon = ft.icons.PLAY_ARROW
         self.progress_bar.visible = False
         self.page.update()
@@ -88,12 +96,12 @@ class Screen(ft.Container):
 
         self.visual_result.src_base64 = ''
         self.page.update()
-        print(f"\033[32m===>stop_flow_end [{self.current_flow}]\033[0m")
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Stop Flow End")
 
 
     def start_flow(self, e: ft.ControlEvent):
         """开始流程"""
-        print(f"\033[32m===>start_flow [{self.current_flow}]\033[0m")
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Start Flow")
         self.start_stop_btn.icon = ft.icons.STOP
         self.progress_bar.visible = True
         self.page.update()
@@ -104,28 +112,29 @@ class Screen(ft.Container):
 
     def start_flow_thread(self, e: ft.ControlEvent):
         """开始流程线程"""
-        print(f"\033[32m===>start_flow_thread [{self.current_flow}]\033[0m")
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Start Flow Thread")
         flow_config = CONFIG_OBJ[self.current_flow]
-        print(f'\033[33m[{self.current_flow}] flow_config: {flow_config}\033[0m')
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Flow Config: {flow_config}")
         if not self.check_config(flow_config):
-            print(f'\033[31m[{self.current_flow}] config error\033[0m')
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Config check failed")
             self.flow_thread=None
             self.stop_flow(e)
         if_use_status_output = flow_config['status_output']
         if if_use_status_output == 'True':
             self._start_status_output_thread(flow_config)
 
-        print(f"\033[32m===>start_flow_thread_loop [{self.current_flow}]\033[0m")
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Start Flow Thread Loop")
         while self.is_running:
             if flow_config['trigger_type'] == '0':
                 #实时探测模式
                 ret,frame=self._get_frame_from_cam(flow_config)
+
                 if ret:
                     res=self._detect_object(frame,flow_config)
                     ok_or_ng=self._logic_process(res,flow_config)
                     self._output_result(res,ok_or_ng,flow_config)
                 else:
-                    print(f'\033[31m[{self.current_flow}] get frame from CAM failed\033[0m')
+                    logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] get frame from CAM failed")
                     self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
                     self.page.update()
                     self.flow_thread=None
@@ -140,7 +149,7 @@ class Screen(ft.Container):
                         ok_or_ng=self._logic_process(res,flow_config)
                         self._output_result(res,ok_or_ng,flow_config)
                     else:
-                        print(f'\033[31m[{self.current_flow}] get frame from CAM failed\033[0m')
+                        logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] get frame from CAM failed")
                         self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
                         self.page.update()
                         self.flow_thread=None
@@ -150,12 +159,13 @@ class Screen(ft.Container):
             elif flow_config['trigger_type'] == '2':
                 #定时探测模式
                 ret,frame=self._get_frame_from_cam(flow_config)
+
                 if ret:
                     res=self._detect_object(frame,flow_config)
                     ok_or_ng=self._logic_process(res,flow_config)
                     self._output_result(res,ok_or_ng,flow_config)
                 else:
-                    print(f'\033[31m[{self.current_flow}] get frame from CAM failed\033[0m')
+                    logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] get frame from CAM failed")
                     self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
                     self.page.update()
                     self.flow_thread=None
@@ -240,21 +250,23 @@ class Screen(ft.Container):
         if cam_use:
             if cam_type == '0':
                 try:
-                    print(f"\033[32m===>check_camera CV camera\033[0m")
+                    logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Check Camera : CV camera")
                     self.cap = cv2.VideoCapture(int(cam_idx))
-                    ret,frame=self.cap.read()
+                    #  取10帧   
+                    for _ in range(10):
+                        ret,frame=self.cap.read()
                     return True
                 except Exception as e:
-                    print(f"===> Error initializing camera: ", e)
+                    logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error initializing camera: {e}")
                     return False
             elif cam_type == '1':
                 try:
-                    print(f"\033[32m===>check_camera HIK camera\033[0m")
+                    logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Check Camera : HIK camera")
                     from hik_CAM.getFrame import start_cam, exit_cam, get_frame
                     self.cap, self.stOutFrame, self.data_buf = start_cam(nConnectionNum=int(cam_idx))
                     return True
                 except Exception as e:
-                    print(f"===> Error initializing camera: ", e)
+                    logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error initializing camera: {e}")
                     return False
             else:
                 return False
@@ -276,7 +288,7 @@ class Screen(ft.Container):
                     self.model = YOLO(model_path)
                     return True
                 except Exception as e:
-                    print(f"===> Error initializing model: ", e)
+                    logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error initializing model: {e}")
                     return False
             else:
                 return True
@@ -289,13 +301,13 @@ class Screen(ft.Container):
             result = self.client.connect()
 
             if result:
-                print(f"===>  PLC initialized, IP: ", plc_ip, "port : ", plc_port, "status : ", result)
+                logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC initialized, IP: {plc_ip}, port : {plc_port}, status : {result}")
             else:
-                print(f"===>  PLC connection failed, IP: ", plc_ip, "port : ", plc_port, "status : ", result)
+                logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC connection failed, IP: {plc_ip}, port : {plc_port}, status : {result}")
 
             return result
         except Exception as e:
-            print(f"===> Error initializing PLC: ", e)
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error initializing PLC: {e}")
             return False
     
     
@@ -310,7 +322,7 @@ class Screen(ft.Container):
             self.GPIO.setup(gpio_output_point, self.GPIO.OUT, initial=self.GPIO.LOW)
             return True
         except Exception as e:
-            print(f"GPIO error: {e}")
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] GPIO error: {e}")
             return False
 
     def _check_socket(self, socket_ip: str, socket_port: int):
@@ -321,7 +333,7 @@ class Screen(ft.Container):
             self.socket_client.connect((socket_ip, socket_port))
             result = True
         except Exception as e:
-            print(f"===> Error initializing socket: ", e)
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error initializing socket: {e}")
             result = False
         finally:
             self.socket_client.close()
@@ -347,7 +359,7 @@ class Screen(ft.Container):
             # 检测上升沿 - 从0变为1
             if current_value == 1 and self.last_trigger_value == 0:
                 self.last_trigger_value = current_value
-                print(f"\033[32m===>listen_trigger [{self.current_flow}] trigger 上升沿\033[0m")
+                logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Detector Trigger :上升沿")
                 return True
             
             # 更新上一次的值
@@ -364,7 +376,7 @@ class Screen(ft.Container):
             # 检测下降沿 - 从1变为0
             if current_value == 0 and self.last_trigger_value == 1:
                 self.last_trigger_value = current_value
-                print(f"\033[32m===>listen_trigger [{self.current_flow}] trigger 下降沿\033[0m")
+                logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Detector Trigger :下降沿")
                 return True
             
             # 更新上一次的值
@@ -383,19 +395,18 @@ class Screen(ft.Container):
         status_output_value = int(flow_config['status_output_value'])
         while self.is_running:
             self.client.write_register(status_output_address, status_output_value)
-            print(f"status_out_put : {status_output_address} {status_output_value}")
+            logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Status_out_put :address {status_output_address} value {status_output_value}")
             time.sleep(3)
         self.status_output_thread = None
 
     def _get_frame_from_cam(self, flow_config):
         """获取相机帧"""
-        print(f'\033[32m[{self.current_flow}] get frame from CAM\033[0m')
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Get Frame from CAM...")
         if flow_config['cam1_type'] == "0":
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # 重置指针（部分摄像头有效）
             for _ in range(int(self.cap.get(cv2.CAP_PROP_BUFFERSIZE))):  # 清空缓冲区
                 self.cap.grab()  # 快速丢弃旧帧（不解码）
             ret, frame = self.cap.read()  # 读取最新帧
-
 
         elif flow_config['cam1_type'] == "1":
             from hik_CAM.getFrame import start_cam, exit_cam, get_frame
@@ -403,12 +414,12 @@ class Screen(ft.Container):
         try:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         except cv2.error as e:
-            print(f"OpenCV error: {e}")
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] OpenCV error: {e}")
         return ret, frame
 
     def _detect_object(self, frame, flow_config):
         """检测物体"""
-        print(f'\033[32m[{self.current_flow}] detect object\033[0m')
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Detect Object...")
         if_model_config_use = flow_config['model_config_use']
         if if_model_config_use == 'True':
             model_path,conf_thres,iou_thres,img_size= self._load_model_config(flow_config)
@@ -422,58 +433,59 @@ class Screen(ft.Container):
 
     def _load_model_config(self, flow_config):
         """加载模型配置"""
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Load Model Config...")
         model_config_file_path = flow_config['model_config_file_path']
         model_config_file = pd.read_csv(model_config_file_path,header=0,index_col=0,encoding='utf-8')
         socket_ip = flow_config['socket_ip']
         socket_port = int(flow_config['socket_port'])
         try:
+            logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Connect to Socket TCP...")
             self.socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket_client.settimeout(1)
             self.socket_client.connect((socket_ip, socket_port))
             self.socket_client.sendall(b'LON\r\n')
             response = self.socket_client.recv(1024)
             if response:
-                print(f"Received response: {response.decode('utf-8')}")
+                logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Received response: {response.decode('utf-8')}")
                 self.socket_data=response.decode('utf-8').strip()
             else:
-                print("\033[31mNo data received.\033[0m")
+                logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] No data received.")
         except Exception as e:
             self.flow_result.value = f"当前流程：[{self.current_flow}] Socket TCP connect failed!"
             self.page.update()
             self.flow_thread=None
             self.stop_flow(e)
-            print(f"\033[31mSocket TCP connect failed Error: {e}\033[0m")
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Socket TCP connect failed Error: {e}")
         finally:
             self.socket_client.close()
 
         data_PN=int(self.socket_data[-10:])
-        print(f'data: {self.socket_data}    data_PN: {data_PN}')
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] data: {self.socket_data}    data_PN: {data_PN}")
         model_path=model_config_file.loc[data_PN]['model']
         conf=float(model_config_file.loc[data_PN]['conf'])
         iou=float(model_config_file.loc[data_PN]['iou'])
         img_size=int(model_config_file.loc[data_PN]['imgsz'])
         self.selected_objects=model_config_file.loc[data_PN]['select_objects'].split(',')[0:-1]
 
-        print(f'model_path: {model_path}')
-        print(f'conf: {conf}')
-        print(f'iou: {iou}')
-        print(f'img_size: {img_size}')
-        print(f'selected_objects: {self.selected_objects}')
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- model_path: {model_path}")
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- conf: {conf}")
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- iou: {iou}")
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- img_size: {img_size}")
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- selected_objects: {self.selected_objects}")
         return model_path,conf,iou,img_size
 
     def _logic_process(self, result, flow_config):
         """逻辑处理"""
-        print(f'\033[32m[{self.current_flow}] logic process\033[0m')
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Logic process...")
         res_json_load = json.loads(result[0].tojson())
         detected_objects = [r['name'] for r in res_json_load]   
-        print(f'detected_objects: {detected_objects}')
         if_model_config_use = flow_config['model_config_use']
         if if_model_config_use == 'True':
             self.selected_objects = self.selected_objects
         else:
             self.selected_objects = flow_config['model1_selected_objects'].split(',')[0:-1]
-
-        print(f'selected_objects: {self.selected_objects}')
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Detected_objects: {detected_objects}")
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Selected_objects: {self.selected_objects}")
         logic_type = flow_config['logic_type']
         if logic_type == '0':  # detected objects [in] selected_objects
             check_result = all(item in self.selected_objects for item in detected_objects) and len(detected_objects) > 0
@@ -488,7 +500,7 @@ class Screen(ft.Container):
 
     def _output_result(self,res, ok_ng: bool, flow_config):
         """输出结果"""
-        print(f'\033[32m[{self.current_flow}] output result\033[0m')
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Output result...")
         if_gpio_output = flow_config['gpio']
         if_visual_output = flow_config['visual']
         if_plc_output = flow_config['plc_output']
@@ -509,6 +521,7 @@ class Screen(ft.Container):
         
     def _gpio_output(self, ok_ng: bool, flow_config):
         """GPIO输出"""
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] GPIO output...")
         gpio_output_point = int(flow_config['gpio_output_point'])
         if ok_ng:
             self.GPIO.output(gpio_output_point, self.GPIO.HIGH)
@@ -517,6 +530,7 @@ class Screen(ft.Container):
 
     def _visual_output(self, res, ok_ng: bool, flow_config):
         """视觉输出"""
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Visual output...")
         res_plotted = res[0].plot()
         if ok_ng:
             res_plotted = cv2.putText(res_plotted, "Logic check pass", (10, 30),
@@ -546,6 +560,7 @@ class Screen(ft.Container):
 
     def _plc_output(self, ok_ng: bool, flow_config):
         """PLC输出"""
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC output...")
         plc_address = int(flow_config['plc_output_address'])
         plc_value = int(flow_config['plc_output_value'])
         if ok_ng:
@@ -555,6 +570,7 @@ class Screen(ft.Container):
 
     def _save_output(self, res, ok_ng: bool, flow_config):
         """保存输出"""
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Save output...")
         save_path = flow_config['result_save_path']
         if not os.path.exists(save_path):
             os.makedirs(save_path)
@@ -575,6 +591,7 @@ class Screen(ft.Container):
                 ok_ng) + '.jpg'
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             cv2.imwrite(os.path.join(save_path, pic_name), frame)
+            logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Save output: {pic_name}")
 
             # save all result in one .md file
             with open(os.path.join(save_path, md_file_name), 'a') as f:
@@ -582,6 +599,7 @@ class Screen(ft.Container):
                 f.write(f'### {res_json}\n')
                 f.write(f'### {ok_ng}\n')
                 f.write(f'![{pic_name}](./{pic_name})\n\n')
+            logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Save output: {md_file_name}")
 
         except Exception as e:
-            print(f"Error saving results: {e}")
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>Error saving results: {e}")
