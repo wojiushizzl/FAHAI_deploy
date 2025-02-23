@@ -314,14 +314,16 @@ class Screen(ft.Container):
             self.socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket_client.settimeout(1)
             self.socket_client.connect((socket_ip, socket_port))
-            return True
+            result = True
         except Exception as e:
             print(f"===> Error initializing socket: ", e)
-            return False
+            result = False
+        finally:
+            self.socket_client.close()
+        return result
 
     def _listen_trigger(self, flow_config):
         """监听触发器"""
-        print(f"\033[32m===>listen_trigger [{self.current_flow}]\033[0m")
         address = int(flow_config['plc_trigger_address'])
         count = int(flow_config['plc_trigger_count'])
         slave=1
@@ -340,6 +342,7 @@ class Screen(ft.Container):
             # 检测上升沿 - 从0变为1
             if current_value == 1 and self.last_trigger_value == 0:
                 self.last_trigger_value = current_value
+                print(f"\033[32m===>listen_trigger [{self.current_flow}] trigger 上升沿\033[0m")
                 return True
             
             # 更新上一次的值
@@ -356,11 +359,14 @@ class Screen(ft.Container):
             # 检测下降沿 - 从1变为0
             if current_value == 0 and self.last_trigger_value == 1:
                 self.last_trigger_value = current_value
+                print(f"\033[32m===>listen_trigger [{self.current_flow}] trigger 下降沿\033[0m")
                 return True
             
             # 更新上一次的值
             self.last_trigger_value = current_value
             return False    
+        
+
     def _start_status_output_thread(self, flow_config):
         """启动状态输出线程"""
         self.status_output_thread = Thread(target=self._status_output_thread, args=(flow_config,))
@@ -407,19 +413,26 @@ class Screen(ft.Container):
     def _load_model_config(self, flow_config):
         """加载模型配置"""
         model_config_file_path = flow_config['model_config_file_path']
-        model_config_file = pd.read_csv(model_config_file_path,header=0,index_col=0)
-        #TODO  socket 获取PN
-        # socket_command= b'LON\r\n'
-        # self.socket_client.sendall(socket_command)
-        # # 接收数据
-        # data = self.socket_client.recv(1024)
-        # if data:
-        #     print(f"Received data: {data.decode('utf-8').strip()}")
-        # else:
-        #     print("No data received.")
-        data='7127178-7716500597'
-        data_PN=int(data[-10:])
-        print(f'data_PN: {data_PN}')
+        model_config_file = pd.read_csv(model_config_file_path,header=0,index_col=0,encoding='utf-8')
+        socket_ip = flow_config['socket_ip']
+        socket_port = int(flow_config['socket_port'])
+        try:
+            self.socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket_client.settimeout(1)
+            self.socket_client.connect((socket_ip, socket_port))
+            self.socket_client.sendall(b'LON\r\n')
+            response = self.socket_client.recv(1024)
+            if response:
+                print(f"Received response: {response.decode('utf-8')}")
+                self.socket_data=response.decode('utf-8').strip()
+            else:
+                print("\033[31mNo data received.\033[0m")
+        except Exception as e:
+            print(f"\033[31mError: {e}\033[0m")
+        finally:
+            self.socket_client.close()
+        data_PN=int(self.socket_data[-10:])
+        print(f'data: {self.socket_data}    data_PN: {data_PN}')
         model_path=model_config_file.loc[data_PN]['model']
         conf=float(model_config_file.loc[data_PN]['conf'])
         iou=float(model_config_file.loc[data_PN]['iou'])
@@ -503,10 +516,12 @@ class Screen(ft.Container):
                                     time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
                                     (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1,
                                     (0, 0, 255), 2, cv2.LINE_AA)
-
-        # # add self.deploy_PLC_address_2.value text
-        # res_plotted = cv2.putText(res_plotted, PN+'_'+model_name, (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1,
-        #                             (0, 0, 255), 2, cv2.LINE_AA)
+        
+        # add  PN text
+        if_model_config_use = flow_config['model_config_use']
+        if if_model_config_use == 'True':
+            res_plotted = cv2.putText(res_plotted, self.socket_data, (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                    (0, 0, 255), 2, cv2.LINE_AA)
         img_pil = Image.fromarray(res_plotted)
         img_byte_arr = BytesIO()
         img_pil.save(img_byte_arr, format="JPEG")
@@ -535,7 +550,11 @@ class Screen(ft.Container):
             with open(os.path.join(save_path, md_file_name), 'w') as f:
                 f.write(f'## {self.current_flow} {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))}\n')
         try:
-            pn = self.current_flow
+            if_model_config_use = flow_config['model_config_use']
+            if if_model_config_use == 'True':
+                pn = self.socket_data
+            else:
+                pn = self.current_flow
             # save frame
             pic_name = pn + '_' + time.strftime('%Y%m%d%H%M%S', time.localtime(time.time())) + '_' + str(
                 ok_ng) + '.jpg'
