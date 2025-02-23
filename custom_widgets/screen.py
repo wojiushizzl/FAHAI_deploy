@@ -168,17 +168,9 @@ class Screen(ft.Container):
         self.flow_result.value = f"当前流程：{self.current_flow} 配置检查中..."
         self.page.update()
         # check camera
-        cam_type = flow_config['cam1_type']
-        cam_idx = flow_config['cam1_idx']
-        cam_size = flow_config['cam1_size']
-        cam_use = flow_config['cam1_use']
-        cam_check_result = self._check_camera(cam_type, cam_idx, cam_size, cam_use)
+        cam_check_result = self._check_camera(flow_config)
         # check model
-        model_path = flow_config['model1_path']
-        model_confidence = flow_config['model1_confidence']
-        model_iou = flow_config['model1_iou']
-        model_use = flow_config['model1_use']
-        model_check_result = self._check_model(model_path, model_confidence, model_iou, model_use)
+        model_check_result = self._check_model(flow_config)
         # check modbus TCP
         plc_output = flow_config['plc_output']
         trigger_type = flow_config['trigger_type']
@@ -218,12 +210,12 @@ class Screen(ft.Container):
             save_result_check = None
         # check result update
         self.flow_result.value = f"当前流程：[{self.current_flow}]      "
-        self.flow_result.value += f"CAM:{'✅' if cam_check_result == True else '❌' if cam_check_result == False else ' N/A'}   "
-        self.flow_result.value += f"MODEL:{'✅' if model_check_result == True else '❌' if model_check_result == False else 'N/A'}   "
-        self.flow_result.value += f"PLC:{'✅' if plc_connect_check_result == True else '❌' if plc_connect_check_result == False else 'N/A'}   "
-        self.flow_result.value += f"GPIO:{'✅' if gpio_output_check_result == True else '❌' if gpio_output_check_result == False else 'N/A'}   "
-        self.flow_result.value += f"SOCKET:{'✅' if socket_check_result == True else '❌' if socket_check_result == False else 'N/A'}   "
-        self.flow_result.value += f"SAVE:{'✅' if save_result_check == True else '❌' if save_result_check == False else 'N/A'}    "
+        self.flow_result.value += f"CAM:{'✅' if cam_check_result == True else '❌' if cam_check_result == False else '⚫'}   "
+        self.flow_result.value += f"MODEL:{'✅' if model_check_result == True else '❌' if model_check_result == False else '⚫'}   "
+        self.flow_result.value += f"PLC:{'✅' if plc_connect_check_result == True else '❌' if plc_connect_check_result == False else '⚫'}   "
+        self.flow_result.value += f"GPIO:{'✅' if gpio_output_check_result == True else '❌' if gpio_output_check_result == False else '⚫'}   "
+        self.flow_result.value += f"SOCKET:{'✅' if socket_check_result == True else '❌' if socket_check_result == False else '⚫'}   "
+        self.flow_result.value += f"SAVE:{'✅' if save_result_check == True else '❌' if save_result_check == False else '⚫'}    "
         self.page.update()
 
         if (cam_check_result == True or cam_check_result == None) and \
@@ -239,8 +231,12 @@ class Screen(ft.Container):
             self.page.update()
             return False
 
-    def _check_camera(self, cam_type, cam_idx, cam_size, cam_use):
+    def _check_camera(self, flow_config):
         """检查相机"""
+        cam_type = flow_config['cam1_type']
+        cam_idx = flow_config['cam1_idx']
+        cam_size = flow_config['cam1_size']
+        cam_use = flow_config['cam1_use']
         if cam_use:
             if cam_type == '0':
                 try:
@@ -265,17 +261,25 @@ class Screen(ft.Container):
         else:
             return True
         
-    def _check_model(self, model_path, model_confidence, model_iou, model_use):
+    def _check_model(self, flow_config):
         """检查模型"""
-        if model_use:
-            try:
-                self.model = YOLO(model_path)
-                return True
-            except Exception as e:
-                print(f"===> Error initializing model: ", e)
-                return False
-        else:
+        model_path = flow_config['model1_path']
+        model_confidence = flow_config['model1_confidence']
+        model_iou = flow_config['model1_iou']
+        model_use = flow_config['model1_use']
+        if_use_model_config = flow_config['model_config_use']
+        if if_use_model_config == 'True':
             return True
+        else:
+            if model_use:
+                try:
+                    self.model = YOLO(model_path)
+                    return True
+                except Exception as e:
+                    print(f"===> Error initializing model: ", e)
+                    return False
+            else:
+                return True
         
     def _check_plc_connect(self, plc_ip: str, plc_port: int):
         """检查PLC连接"""
@@ -438,7 +442,7 @@ class Screen(ft.Container):
             self.page.update()
             self.flow_thread=None
             self.stop_flow(e)
-            print(f"\033[31mError: {e}\033[0m")
+            print(f"\033[31mSocket TCP connect failed Error: {e}\033[0m")
         finally:
             self.socket_client.close()
 
