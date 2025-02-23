@@ -434,9 +434,14 @@ class Screen(ft.Container):
             else:
                 print("\033[31mNo data received.\033[0m")
         except Exception as e:
+            self.flow_result.value = f"当前流程：[{self.current_flow}] Socket TCP connect failed!"
+            self.page.update()
+            self.flow_thread=None
+            self.stop_flow(e)
             print(f"\033[31mError: {e}\033[0m")
         finally:
             self.socket_client.close()
+
         data_PN=int(self.socket_data[-10:])
         print(f'data: {self.socket_data}    data_PN: {data_PN}')
         model_path=model_config_file.loc[data_PN]['model']

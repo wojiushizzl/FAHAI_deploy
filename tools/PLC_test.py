@@ -24,6 +24,7 @@ def random_write(value):
         print(f"写入后保持寄存器的值: {result2.registers}")
         print(f"写入后保持寄存器的值: {result3.registers}")
         print(f"写入后保持寄存器的值: {result4.registers}")
+        print('*'*40)
     else:
         print("读取失败")
 

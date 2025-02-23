@@ -35,7 +35,6 @@ while True:
                 client_socket.sendall(response1.encode('utf-8'))
             else:
                 client_socket.sendall(response2.encode('utf-8'))
-            print(f"Sent response: {response1.decode('utf-8').strip()}")
         else:
             print("No data received.")
             break       
