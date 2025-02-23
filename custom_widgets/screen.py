@@ -246,6 +246,7 @@ class Screen(ft.Container):
                 try:
                     print(f"\033[32m===>check_camera CV camera\033[0m")
                     self.cap = cv2.VideoCapture(int(cam_idx))
+                    ret,frame=self.cap.read()
                     return True
                 except Exception as e:
                     print(f"===> Error initializing camera: ", e)
