@@ -386,7 +386,12 @@ class Screen(ft.Container):
         """获取相机帧"""
         print(f'\033[32m[{self.current_flow}] get frame from CAM\033[0m')
         if flow_config['cam1_type'] == "0":
-            ret, frame = self.cap.read()
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # 重置指针（部分摄像头有效）
+            for _ in range(int(self.cap.get(cv2.CAP_PROP_BUFFERSIZE))):  # 清空缓冲区
+                self.cap.grab()  # 快速丢弃旧帧（不解码）
+            ret, frame = self.cap.read()  # 读取最新帧
+
+
         elif flow_config['cam1_type'] == "1":
             from hik_CAM.getFrame import start_cam, exit_cam, get_frame
             ret, frame = get_frame(self.cap, self.stOutFrame)
