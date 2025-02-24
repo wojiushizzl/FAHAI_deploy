@@ -601,5 +601,7 @@ class Screen(ft.Container):
                 f.write(f'![{pic_name}](./{pic_name})\n\n')
             logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Save output: {md_file_name}")
 
+
+
         except Exception as e:
             logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>Error saving results: {e}")

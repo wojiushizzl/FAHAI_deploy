@@ -1,4 +1,4 @@
-﻿trigger,model,conf,iou,imgsz,select_objects
+trigger,model,conf,iou,imgsz,select_objects
 7716500597,C:\Users\ZZL\OneDrive\桌面\ZZL_projects\Flet-GUI-basic\user_data\model_config\G6X000.pt,0.5,0.5,640,"lable,cap,"
 7716500598,C:\Users\ZZL\OneDrive\桌面\ZZL_projects\Flet-GUI-basic\user_data\model_config\G6X000.pt,0.5,0.5,640,"lable,cap,"
 7716500599,C:\Users\ZZL\OneDrive\桌面\ZZL_projects\Flet-GUI-basic\user_data\model_config\G6X000.pt,0.5,0.5,640,"lable,cap,"
