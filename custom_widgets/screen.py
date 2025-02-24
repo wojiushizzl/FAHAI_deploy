@@ -12,13 +12,19 @@ import socket
 import os
 import pandas as pd
 import logging
-
+import threading
 #save log to file
 logging.basicConfig(level=logging.INFO, filename='log.log')
 logger = logging.getLogger(__name__)
 
 
-
+# TODO 
+# 1. 异常中断后画面显示
+# 2. 料号不在配方，添加中断点
+# 3. logger 优化 done
+# 4. print调试点删除 done
+# 5. stop_flow 添加终结线程 done 待测试
+# 6. 测试cap.read() 输出分辨率
 
 class Screen(ft.Container):
     def __init__(self, index: str):
@@ -86,9 +92,6 @@ class Screen(ft.Container):
         self.page.update()
         
         self.is_running = False
-        if self.flow_thread:
-            self.flow_thread.join()
-            self.flow_thread = None
 
         if self.cap:
             self.cap.release()
@@ -98,12 +101,33 @@ class Screen(ft.Container):
             self.client.close()
             self.modbus_connect_result = None
 
-        self.flow_result.value = f"当前流程：[{self.current_flow}] 已停止..."
-        
+
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Current Thread: {threading.enumerate()}")
+        # TODO 线程终结bug
+        # check if thread is running
+        if self.socket_connect_thread:
+            if self.socket_connect_thread.is_alive():
+                self.socket_connect_thread.join()
+                self.socket_connect_thread = None
+        if self.modbus_connect_thread:
+            if self.modbus_connect_thread.is_alive():
+                self.modbus_connect_thread.join()
+                self.modbus_connect_thread = None
+        if self.flow_thread:
+            if self.flow_thread.is_alive():
+                self.flow_thread.join()
+                self.flow_thread = None
+        if self.status_output_thread:
+            if self.status_output_thread.is_alive():
+                self.status_output_thread.join()
+                self.status_output_thread = None
+        # 打印当前线程
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Current Thread: {threading.enumerate()}")
 
         self.visual_result.src_base64 = ''
-        self.page.update()
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Stop Flow End")
+        self.flow_result.value = f"当前流程：[{self.current_flow}] 已停止..."
+        self.page.update()
 
 
     def start_flow(self, e: ft.ControlEvent):
@@ -137,10 +161,12 @@ class Screen(ft.Container):
         while self.is_running:
             if not self.socket_connect_result:
                 self.flow_result.value = f"当前流程：[{self.current_flow}] Socket TCP connect failed!"
+                self.visual_result.src_base64 = ''
                 self.page.update()
                 continue
             if not self.modbus_connect_result:
                 self.flow_result.value = f"当前流程：[{self.current_flow}] PLC connection failed!"
+                self.visual_result.src_base64 = ''
                 self.page.update()
                 continue
             self.flow_result.value = f"当前流程：[{self.current_flow}] 工作中..."
@@ -171,6 +197,7 @@ class Screen(ft.Container):
                     else:
                         logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] get frame from CAM failed")
                         self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
+                        self.visual_result.src_base64 = ''
                         self.page.update()
                         self.flow_thread=None
                         self.stop_flow(e)
@@ -262,6 +289,7 @@ class Screen(ft.Container):
             return True
         else:
             self.flow_result.value += f" 配置检查失败 ===> 流程停止" 
+            self.visual_result.src_base64 = ''
             self.page.update()
             return False
 
@@ -387,12 +415,17 @@ class Screen(ft.Container):
         slave=1
         self.modbus_connect_result=self.client.connect()
         if  self.modbus_connect_result:
-            logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC connection success")
+            pass
+            # logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC connection success")
         else:
             logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC connection failed")
             return False
-            
-        result = self.client.read_holding_registers(address, count,slave=1)
+
+        try:
+            result = self.client.read_holding_registers(address, count,slave=1)
+        except Exception as e:
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC read failed: {e}")
+            return False
         type=flow_config['signal_type']
         # 当type为0时，监听result的上升延信号
         if type == '0':
@@ -401,7 +434,11 @@ class Screen(ft.Container):
                 self.last_trigger_value = 0
             
             # 获取当前值
-            current_value = result.registers[0] if result and result.registers else 0
+            try:
+                current_value = result.registers[0] if result and result.registers else 0
+            except Exception as e:
+                logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC read failed: {e}")
+                return False
             
             # 检测上升沿 - 从0变为1
             if current_value == 1 and self.last_trigger_value == 0:
@@ -418,7 +455,11 @@ class Screen(ft.Container):
                 self.last_trigger_value = 1
             
             # 获取当前值
-            current_value = result.registers[0] if result and result.registers else 1   
+            try:
+                current_value = result.registers[0] if result and result.registers else 1   
+            except Exception as e:
+                logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC read failed: {e}")
+                return False
             
             # 检测下降沿 - 从1变为0
             if current_value == 0 and self.last_trigger_value == 1:
@@ -502,12 +543,14 @@ class Screen(ft.Container):
                 logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] No data received.")
         except Exception as e:
             self.flow_result.value = f"当前流程：[{self.current_flow}] Socket TCP connect failed!"
+            self.visual_result.src_base64 = ''
             self.page.update()
             self.socket_connect_result = False
             logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Socket TCP connect failed Error: {e}")
         finally:
             self.socket_client.close()
-
+        # TODO 获取不到PN逻辑
+        # TODO 获取PN不在列表中逻辑
         data_PN=int(self.socket_data[-10:])
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] data: {self.socket_data}    data_PN: {data_PN}")
         model_path=model_config_file.loc[data_PN]['model']

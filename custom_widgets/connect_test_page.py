@@ -137,6 +137,7 @@ class ConnectTestPage(ft.Tab):
         try:
             client = ModbusTcpClient(self.modbus_connect_ip_input.value, port=int(self.modbus_connect_port_input.value), slave=1)
             result = client.connect()
+            print(f"PLC连接检查结果: {result}")
             if result:
                 self.modbus_connect_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
                 self.modbus_connect_test_row3.controls[2].controls[0].value = 'PLC连接检查成功'
@@ -179,8 +180,8 @@ class ConnectTestPage(ft.Tab):
             ip = self.socket_connect_ip_input.value
             port = int(self.socket_connect_port_input.value)
             # 连接到设备
-            tcp_socket.connect((ip, port))
-            print("Connected successfully!")
+            connect_result = tcp_socket.connect((ip, port))
+            print(f"Connected successfully! {connect_result}")
             self.socket_connect_test_row3.controls[1] = ft.Icon(ft.icons.CHECK_CIRCLE, size=20)
             self.socket_connect_test_row3.controls[2].controls[0].value = 'socket连接检查成功'
             self.socket_connect_test_row3.controls[2].controls[1].value = f'IP:{self.socket_connect_ip_input.value}, Port:{self.socket_connect_port_input.value}'
