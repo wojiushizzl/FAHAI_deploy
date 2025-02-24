@@ -94,6 +94,13 @@ class Screen(ft.Container):
             self.cap.release()
             self.cap = None
 
+        if self.modbus_connect_result:
+            self.client.close()
+            self.modbus_connect_result = None
+
+        self.flow_result.value = f"当前流程：[{self.current_flow}] 已停止..."
+        
+
         self.visual_result.src_base64 = ''
         self.page.update()
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Stop Flow End")
@@ -120,11 +127,24 @@ class Screen(ft.Container):
             self.flow_thread=None
             self.stop_flow(e)
         if_use_status_output = flow_config['status_output']
-        if if_use_status_output == 'True':
+
+        
+
+        if if_use_status_output == 'True' and self.modbus_connect_result:
             self._start_status_output_thread(flow_config)
 
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Start Flow Thread Loop")
         while self.is_running:
+            if not self.socket_connect_result:
+                self.flow_result.value = f"当前流程：[{self.current_flow}] Socket TCP connect failed!"
+                self.page.update()
+                continue
+            if not self.modbus_connect_result:
+                self.flow_result.value = f"当前流程：[{self.current_flow}] PLC connection failed!"
+                self.page.update()
+                continue
+            self.flow_result.value = f"当前流程：[{self.current_flow}] 工作中..."
+            self.page.update()
             if flow_config['trigger_type'] == '0':
                 #实时探测模式
                 ret,frame=self._get_frame_from_cam(flow_config)
@@ -192,6 +212,8 @@ class Screen(ft.Container):
             plc_connect_check_result = None
         elif trigger_type == '1' or plc_output == 'True' or status_output == 'True':
             plc_connect_check_result = self._check_plc_connect(plc_ip, plc_port)
+            self.modbus_connect_thread = Thread(target=self._detect_plc_connect, args=(flow_config,))
+            self.modbus_connect_thread.start()
         else:
             plc_connect_check_result = None
         
@@ -210,6 +232,8 @@ class Screen(ft.Container):
             socket_ip = flow_config['socket_ip']
             socket_port = int(flow_config['socket_port'])
             socket_check_result = self._check_socket(socket_ip, socket_port)
+            self.socket_connect_thread = Thread(target=self._detect_socket_connect, args=(flow_config,))
+            self.socket_connect_thread.start()
         else:
             socket_check_result = None
         #check if save
@@ -298,19 +322,35 @@ class Screen(ft.Container):
         try:
             from pymodbus.client import ModbusTcpClient
             self.client = ModbusTcpClient(plc_ip, port=plc_port, slave=1)
-            result = self.client.connect()
+            self.modbus_connect_result = self.client.connect()
 
-            if result:
-                logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC initialized, IP: {plc_ip}, port : {plc_port}, status : {result}")
+            if self.modbus_connect_result:
+                logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC initialized, IP: {plc_ip}, port : {plc_port}, status : {self.modbus_connect_result}")
             else:
-                logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC connection failed, IP: {plc_ip}, port : {plc_port}, status : {result}")
+                logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC connection failed, IP: {plc_ip}, port : {plc_port}, status : {self.modbus_connect_result}")
 
-            return result
+            return self.modbus_connect_result
         except Exception as e:
             logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error initializing PLC: {e}")
-            return False
-    
-    
+            self.modbus_connect_result = False
+            return self.modbus_connect_result
+    def _detect_plc_connect(self, flow_config):
+        """检测PLC连接"""
+        plc_ip = flow_config['plc_ip']
+        plc_port = int(flow_config['plc_port'])
+        while True:
+            self.modbus_connect_result = self.client.connect()
+            if not self.modbus_connect_result:
+                logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC connection failed, IP: {plc_ip}, port : {plc_port}, status : {self.modbus_connect_result}")
+            time.sleep(3)
+    def _detect_socket_connect(self, flow_config):
+        """检测socket连接"""
+        socket_ip = flow_config['socket_ip']
+        socket_port = int(flow_config['socket_port'])
+        while True:
+            self._check_socket(socket_ip, socket_port)
+            time.sleep(3)
+
     def _check_gpio_output(self, gpio_output_point):
         """检查GPIO输出"""
         gpio_output_point = int(gpio_output_point)  
@@ -337,14 +377,21 @@ class Screen(ft.Container):
             result = False
         finally:
             self.socket_client.close()
-        return result
+        self.socket_connect_result = result
+        return self.socket_connect_result
 
     def _listen_trigger(self, flow_config):
         """监听触发器"""
         address = int(flow_config['plc_trigger_address'])
         count = int(flow_config['plc_trigger_count'])
         slave=1
-        self.client.connect()
+        self.modbus_connect_result=self.client.connect()
+        if  self.modbus_connect_result:
+            logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC connection success")
+        else:
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC connection failed")
+            return False
+            
         result = self.client.read_holding_registers(address, count,slave=1)
         type=flow_config['signal_type']
         # 当type为0时，监听result的上升延信号
@@ -393,7 +440,10 @@ class Screen(ft.Container):
         """状态输出线程"""
         status_output_address = int(flow_config['status_output_address'])
         status_output_value = int(flow_config['status_output_value'])
-        while self.is_running:
+        while self.is_running :
+            if not self.modbus_connect_result:
+                time.sleep(3)
+                continue
             self.client.write_register(status_output_address, status_output_value)
             logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Status_out_put :address {status_output_address} value {status_output_value}")
             time.sleep(3)
@@ -443,7 +493,7 @@ class Screen(ft.Container):
             self.socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket_client.settimeout(1)
             self.socket_client.connect((socket_ip, socket_port))
-            self.socket_client.sendall(b'LON\r\n')
+            self.socket_client.sendall(b'LON\r')
             response = self.socket_client.recv(1024)
             if response:
                 logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Received response: {response.decode('utf-8')}")
@@ -453,8 +503,7 @@ class Screen(ft.Container):
         except Exception as e:
             self.flow_result.value = f"当前流程：[{self.current_flow}] Socket TCP connect failed!"
             self.page.update()
-            self.flow_thread=None
-            self.stop_flow(e)
+            self.socket_connect_result = False
             logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Socket TCP connect failed Error: {e}")
         finally:
             self.socket_client.close()
