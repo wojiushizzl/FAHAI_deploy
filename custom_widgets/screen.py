@@ -32,6 +32,7 @@ class Screen(ft.Container):
         self.index = index
         self.expand = 1
         self.padding = ft.Padding(0, 0, 0, 0)
+        self.cap = None
         self.flow_thread = None
         self.socket_connect_thread = None
         self.modbus_connect_thread = None
