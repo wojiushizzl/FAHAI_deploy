@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # 3. logger 优化 done
 # 4. print调试点删除 done
 # 5. stop_flow 添加终结线程 done 待测试
-# 6. 测试cap.read() 输出分辨率
+# 6. 测试cap.read() 输出分辨率, depond on camera done
 # 7. 添加组建 查看log
 
 class Screen(ft.Container):
@@ -97,7 +97,7 @@ class Screen(ft.Container):
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Stop Flow")
         self.start_stop_btn.icon = ft.icons.PLAY_ARROW
         self.progress_bar.visible = False
-        self.page.update()
+        # self.page.update()
         
         self.is_running = False
 
@@ -113,22 +113,34 @@ class Screen(ft.Container):
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Current Thread: {threading.enumerate()}")
         # TODO 线程终结bug
         # check if thread is running
-        if self.socket_connect_thread:
-            if self.socket_connect_thread.is_alive():
-                self.socket_connect_thread.join()
-                self.socket_connect_thread = None
-        if self.modbus_connect_thread:
-            if self.modbus_connect_thread.is_alive():
-                self.modbus_connect_thread.join()
-                self.modbus_connect_thread = None
-        if self.flow_thread:
-            if self.flow_thread.is_alive():
-                self.flow_thread.join()
-                self.flow_thread = None
-        if self.status_output_thread:
-            if self.status_output_thread.is_alive():
-                self.status_output_thread.join()
-                self.status_output_thread = None
+        # try:
+        #     if self.socket_connect_thread:
+        #         if self.socket_connect_thread.is_alive():
+        #             self.socket_connect_thread.join()
+        #         self.socket_connect_thread = None
+        # except Exception as e:
+        #     logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error killing thread: {e}")
+        # try:    
+        #     if self.modbus_connect_thread:
+        #         if self.modbus_connect_thread.is_alive():
+        #             self.modbus_connect_thread.join()
+        #             self.modbus_connect_thread = None
+        # except Exception as e:
+        #     logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error killing thread: {e}")
+        try:
+            if self.flow_thread:
+                if self.flow_thread.is_alive():
+                    self.flow_thread.join()
+                    self.flow_thread = None
+        except Exception as e:
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error killing thread: {e}")
+        # try:
+        #     if self.status_output_thread:
+        #         if self.status_output_thread.is_alive():
+        #                 self.status_output_thread.join()
+        #                 self.status_output_thread = None
+        # except Exception as e:
+        #     logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error killing thread: {e}")
         # 打印当前线程
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Current Thread: {threading.enumerate()}")
 
@@ -159,9 +171,6 @@ class Screen(ft.Container):
             self.flow_thread=None
             self.stop_flow(e)
         if_use_status_output = flow_config['status_output']
-
-        
-
         if if_use_status_output == 'True' and self.modbus_connect_result:
             self._start_status_output_thread(flow_config)
 
@@ -263,6 +272,7 @@ class Screen(ft.Container):
         elif trigger_type == '1' or plc_output == 'True' or status_output == 'True':
             plc_connect_check_result = self._check_plc_connect(plc_ip, plc_port)
             self.modbus_connect_thread = Thread(target=self._detect_plc_connect, args=(flow_config,))
+            self.modbus_connect_thread.daemon = True
             self.modbus_connect_thread.start()
         else:
             plc_connect_check_result = None
@@ -283,6 +293,7 @@ class Screen(ft.Container):
             socket_port = int(flow_config['socket_port'])
             socket_check_result = self._check_socket(socket_ip, socket_port)
             self.socket_connect_thread = Thread(target=self._detect_socket_connect, args=(flow_config,))
+            self.socket_connect_thread.daemon = True
             self.socket_connect_thread.start()
         else:
             socket_check_result = None
@@ -330,6 +341,7 @@ class Screen(ft.Container):
                     #  取10帧   
                     for _ in range(10):
                         ret,frame=self.cap.read()
+                        # print(frame.shape)
                     return True
                 except Exception as e:
                     logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error initializing camera: {e}")
@@ -498,6 +510,7 @@ class Screen(ft.Container):
     def _start_status_output_thread(self, flow_config):
         """启动状态输出线程"""
         self.status_output_thread = Thread(target=self._status_output_thread, args=(flow_config,))
+        self.status_output_thread.daemon = True
         self.status_output_thread.start()
 
     def _status_output_thread(self, flow_config):
