@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 # 4. print调试点删除 done
 # 5. stop_flow 添加终结线程 done 待测试
 # 6. 测试cap.read() 输出分辨率, depond on camera done
-# 7. 添加组建 查看log
 
 class Screen(ft.Container):
     def __init__(self, index: str):
@@ -111,22 +110,7 @@ class Screen(ft.Container):
 
 
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Current Thread: {threading.enumerate()}")
-        # TODO 线程终结bug
-        # check if thread is running
-        # try:
-        #     if self.socket_connect_thread:
-        #         if self.socket_connect_thread.is_alive():
-        #             self.socket_connect_thread.join()
-        #         self.socket_connect_thread = None
-        # except Exception as e:
-        #     logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error killing thread: {e}")
-        # try:    
-        #     if self.modbus_connect_thread:
-        #         if self.modbus_connect_thread.is_alive():
-        #             self.modbus_connect_thread.join()
-        #             self.modbus_connect_thread = None
-        # except Exception as e:
-        #     logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error killing thread: {e}")
+
         try:
             if self.flow_thread:
                 if self.flow_thread.is_alive():
@@ -134,13 +118,6 @@ class Screen(ft.Container):
                     self.flow_thread = None
         except Exception as e:
             logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error killing thread: {e}")
-        # try:
-        #     if self.status_output_thread:
-        #         if self.status_output_thread.is_alive():
-        #                 self.status_output_thread.join()
-        #                 self.status_output_thread = None
-        # except Exception as e:
-        #     logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error killing thread: {e}")
         # 打印当前线程
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Current Thread: {threading.enumerate()}")
 
