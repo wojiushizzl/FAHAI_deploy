@@ -31,7 +31,7 @@ while True:
 
         #随机发送   
         if random.randint(0, 1) == 0:
-            client_socket.sendall()
+            client_socket.sendall(response1.encode('utf-8'))
         else:
             client_socket.sendall(response2.encode('utf-8'))
     else:
