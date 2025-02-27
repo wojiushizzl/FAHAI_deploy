@@ -14,17 +14,18 @@ import pandas as pd
 import logging
 import threading
 #save log to file
-logging.basicConfig(level=logging.INFO, filename='log.log')
+logging.basicConfig(level=logging.INFO, filename='user_data/log.log')
 logger = logging.getLogger(__name__)
 
 
 # TODO 
-# 1. 异常中断后画面显示
-# 2. 料号不在配方，添加中断点
+# 1. 异常中断后画面显示 done
+# 2. 料号不在配方，添加中断点 done
 # 3. logger 优化 done
 # 4. print调试点删除 done
 # 5. stop_flow 添加终结线程 done 待测试
 # 6. 测试cap.read() 输出分辨率
+# 7. 添加组建 查看log
 
 class Screen(ft.Container):
     def __init__(self, index: str):
@@ -33,7 +34,14 @@ class Screen(ft.Container):
         self.expand = 1
         self.padding = ft.Padding(0, 0, 0, 0)
         self.flow_thread = None
+        self.socket_connect_thread = None
+        self.modbus_connect_thread = None
+        self.status_output_thread = None
         self.is_running = False
+        self.socket_connect_result = None
+        self.modbus_connect_result = None
+        self.pn_in_model_config = True
+
         self._init_widgets()
     def _init_widgets(self):
         """初始化组件"""
@@ -159,16 +167,25 @@ class Screen(ft.Container):
 
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Start Flow Thread Loop")
         while self.is_running:
-            if not self.socket_connect_result:
-                self.flow_result.value = f"当前流程：[{self.current_flow}] Socket TCP connect failed!"
+            need_check_modbus_connect = flow_config['trigger_type'] == '1' or flow_config['plc_output'] == 'True' or flow_config['status_output'] == 'True'
+            if not self.socket_connect_result and need_check_modbus_connect:
+                self.flow_result.value = f"当前流程：[{self.current_flow}] Socket TCP connect failed! try reconnect..."
                 self.visual_result.src_base64 = ''
                 self.page.update()
                 continue
-            if not self.modbus_connect_result:
-                self.flow_result.value = f"当前流程：[{self.current_flow}] PLC connection failed!"
+            need_check_socket_connect = flow_config['model_config_use'] == 'True' or flow_config['socket'] == 'True'
+            if not self.modbus_connect_result and need_check_socket_connect:
+                self.flow_result.value = f"当前流程：[{self.current_flow}] PLC connection failed! try reconnect..."
                 self.visual_result.src_base64 = ''
                 self.page.update()
                 continue
+
+            if not self.pn_in_model_config:
+                self.flow_result.value = f"当前流程：[{self.current_flow}] 料号不在模型配置中，请检查配置"
+                self.visual_result.src_base64 = ''
+                self.page.update()
+                continue
+
             self.flow_result.value = f"当前流程：[{self.current_flow}] 工作中..."
             self.page.update()
             if flow_config['trigger_type'] == '0':
@@ -177,6 +194,8 @@ class Screen(ft.Container):
 
                 if ret:
                     res=self._detect_object(frame,flow_config)
+                    if res is None:
+                        continue
                     ok_or_ng=self._logic_process(res,flow_config)
                     self._output_result(res,ok_or_ng,flow_config)
                 else:
@@ -192,6 +211,8 @@ class Screen(ft.Container):
                     ret,frame=self._get_frame_from_cam(flow_config)
                     if ret:
                         res=self._detect_object(frame,flow_config)
+                        if res is None:
+                            continue
                         ok_or_ng=self._logic_process(res,flow_config)
                         self._output_result(res,ok_or_ng,flow_config)
                     else:
@@ -209,6 +230,8 @@ class Screen(ft.Container):
 
                 if ret:
                     res=self._detect_object(frame,flow_config)
+                    if res is None:
+                        continue
                     ok_or_ng=self._logic_process(res,flow_config)
                     self._output_result(res,ok_or_ng,flow_config)
                 else:
@@ -514,6 +537,8 @@ class Screen(ft.Container):
         if_model_config_use = flow_config['model_config_use']
         if if_model_config_use == 'True':
             model_path,conf_thres,iou_thres,img_size= self._load_model_config(flow_config)
+            if model_path is None:
+                return None
             self.model = YOLO(model_path)
         else:
             conf_thres = float(flow_config['model1_confidence'])
@@ -540,7 +565,7 @@ class Screen(ft.Container):
                 logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Received response: {response.decode('utf-8')}")
                 self.socket_data=response.decode('utf-8').strip()
             else:
-                logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] No data received.")
+                logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] No socket data received.")
         except Exception as e:
             self.flow_result.value = f"当前流程：[{self.current_flow}] Socket TCP connect failed!"
             self.visual_result.src_base64 = ''
@@ -550,9 +575,14 @@ class Screen(ft.Container):
         finally:
             self.socket_client.close()
         # TODO 获取不到PN逻辑
-        # TODO 获取PN不在列表中逻辑
         data_PN=int(self.socket_data[-10:])
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] data: {self.socket_data}    data_PN: {data_PN}")
+        if data_PN not in model_config_file.index:
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] data_PN: {data_PN} not in model_config_file")
+            self.pn_in_model_config = False
+            self.reset_pn_in_model_config_thread = Thread(target=self._reset_pn_in_model_config, args=(flow_config,))
+            self.reset_pn_in_model_config_thread.start()
+            return None,None,None,None
         model_path=model_config_file.loc[data_PN]['model']
         conf=float(model_config_file.loc[data_PN]['conf'])
         iou=float(model_config_file.loc[data_PN]['iou'])
@@ -565,7 +595,13 @@ class Screen(ft.Container):
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- img_size: {img_size}")
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- selected_objects: {self.selected_objects}")
         return model_path,conf,iou,img_size
-
+    def _reset_pn_in_model_config(self, flow_config):
+        """重置PN在模型配置中"""
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Reset PN in model config...")
+        time.sleep(3)
+        self.pn_in_model_config = True
+        self.reset_pn_in_model_config_thread = None
+        
     def _logic_process(self, result, flow_config):
         """逻辑处理"""
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Logic process...")
