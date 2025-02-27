@@ -15,7 +15,9 @@ class DataOverviewWindow(ft.Container):
         with open("user_data/log.log", "r") as f:
             self.log_text = ft.Text(value=f.read(), size=12, color=ft.colors.PRIMARY)
 
-        self.content = ft.Column([self.log_text], expand=True,scroll=ft.ScrollMode.AUTO)
+        self.clean_log_btn = ft.TextButton(text="清理日志", on_click=self.clean_log_btn_click)
+
+        self.content = ft.Column([self.clean_log_btn, self.log_text], expand=True,scroll=ft.ScrollMode.AUTO)
 
     # 定时更新log文本
     def update_log_text(self):
@@ -23,6 +25,9 @@ class DataOverviewWindow(ft.Container):
         with open("user_data/log.log", "r") as f:
             self.log_text.value = f.read()  
 
-
-
-
+    def clean_log_btn_click(self, e: ft.ControlEvent):
+        """清理日志按钮点击事件"""
+        with open("user_data/log.log", "w") as f:
+            f.write("")
+        self.update_log_text()
+        self.page.update()

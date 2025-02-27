@@ -187,7 +187,7 @@ class LeftNavigationMenu(ft.Container):
             ft.NavigationRailDestination(icon=ft.icons.INSERT_DRIVE_FILE_OUTLINED,
                                          selected_icon=ft.icons.INSERT_DRIVE_FILE, label='使用文档'),
             ft.NavigationRailDestination(icon=ft.icons.INSERT_CHART_OUTLINED, selected_icon=ft.icons.INSERT_CHART,
-                                         label='数据概览'),
+                                         label='系统日志'),
             ft.NavigationRailDestination(icon=ft.icons.SETTINGS_OUTLINED, selected_icon=ft.icons.SETTINGS, label='设置')
         ]
         navigation_rail = ft.NavigationRail(leading=None, destinations=self.page_btns, selected_index=0, height=360,
