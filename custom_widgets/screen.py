@@ -102,8 +102,15 @@ class Screen(ft.Container):
         self.is_running = False
 
         if self.cap:
-            self.cap.release()
-            self.cap = None
+            try:
+                self.cap.release()
+                self.cap = None
+            except Exception as e:
+                from hik_CAM.getFrame import exit_cam
+                exit_cam(self.cap, self.data_buf)
+                self.cap = None
+
+
 
         if self.modbus_connect_result:
             self.client.close()
@@ -179,54 +186,36 @@ class Screen(ft.Container):
                 #实时探测模式
                 ret,frame=self._get_frame_from_cam(flow_config)
 
-                if ret:
-                    res=self._detect_object(frame,flow_config)
-                    if res is None:
-                        continue
-                    ok_or_ng=self._logic_process(res,flow_config)
-                    self._output_result(res,ok_or_ng,flow_config)
-                else:
-                    logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] get frame from CAM failed")
-                    self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
-                    self.page.update()
-                    self.flow_thread=None
-                    self.stop_flow(e)
+                res=self._detect_object(frame,flow_config)
+                if res is None:
+                    continue
+                ok_or_ng=self._logic_process(res,flow_config)
+                self._output_result(res,ok_or_ng,flow_config)
+
             elif flow_config['trigger_type'] == '1':
                 #触发器模式
                 trigger=self._listen_trigger(flow_config)
                 if trigger:
                     ret,frame=self._get_frame_from_cam(flow_config)
-                    if ret:
-                        res=self._detect_object(frame,flow_config)
-                        if res is None:
-                            continue
-                        ok_or_ng=self._logic_process(res,flow_config)
-                        self._output_result(res,ok_or_ng,flow_config)
-                    else:
-                        logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] get frame from CAM failed")
-                        self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
-                        self.visual_result.src_base64 = ''
-                        self.page.update()
-                        self.flow_thread=None
-                        self.stop_flow(e)
+                    res=self._detect_object(frame,flow_config)
+                    if res is None:
+                        continue
+                    ok_or_ng=self._logic_process(res,flow_config)
+                    self._output_result(res,ok_or_ng,flow_config)
+
                 else:
                     continue
             elif flow_config['trigger_type'] == '2':
                 #定时探测模式
                 ret,frame=self._get_frame_from_cam(flow_config)
 
-                if ret:
-                    res=self._detect_object(frame,flow_config)
-                    if res is None:
-                        continue
-                    ok_or_ng=self._logic_process(res,flow_config)
-                    self._output_result(res,ok_or_ng,flow_config)
-                else:
-                    logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] get frame from CAM failed")
-                    self.flow_result.value = f"当前流程：[{self.current_flow}] 获取相机帧失败"
-                    self.page.update()
-                    self.flow_thread=None
-                    self.stop_flow(e)
+
+                res=self._detect_object(frame,flow_config)
+                if res is None:
+                    continue
+                ok_or_ng=self._logic_process(res,flow_config)
+                self._output_result(res,ok_or_ng,flow_config)
+
                 time.sleep(1)
                 
 
@@ -329,6 +318,10 @@ class Screen(ft.Container):
                     logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Check Camera : HIK camera")
                     from hik_CAM.getFrame import start_cam, exit_cam, get_frame
                     self.cap, self.stOutFrame, self.data_buf = start_cam(nConnectionNum=int(cam_idx))
+                   #  取10帧   
+                    for _ in range(10):
+                        ret,frame=get_frame(self.cap, self.stOutFrame)
+                        # print(frame.shape)
                     return True
                 except Exception as e:
                     logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error initializing camera: {e}")
@@ -516,6 +509,7 @@ class Screen(ft.Container):
         elif flow_config['cam1_type'] == "1":
             from hik_CAM.getFrame import start_cam, exit_cam, get_frame
             ret, frame = get_frame(self.cap, self.stOutFrame)
+
         try:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         except cv2.error as e:
