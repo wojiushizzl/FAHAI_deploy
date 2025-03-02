@@ -129,4 +129,6 @@ $ conda activate yolov8
 #remove env
 $ conda remove -n yolov8 --all
 
+#pip change source
+$ pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 ```
