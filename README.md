@@ -44,3 +44,94 @@ python main.py --web
 python main.py --help
 ```
 
+## ⏰其他
+
+Install nvidia-jetpack
+```bash
+$ sudo apt upgrade
+$ sudo apt update
+$ sudo apt dist-upgrade
+$ sudo reboot
+$ sudo apt install nvidia-jetpack 
+```
+Install jtop
+```bash	
+$ sudo apt install python3-pip
+$ sudo -H pip3 install -U jetson-stats
+$ sudo reboot
+```
+Install VSCode  
+[Download arm64 version "code_1.87.2-1709911730_arm64.deb"](https://code.visualstudio.com/docs/?dv=linuxarm64_deb)
+```bash
+#Install
+$ sudo dpkg -i code_1.87.2-1709911730_arm64.deb
+```
+Install label-studio  
+[Label studio github](https://github.com/HumanSignal/label-studio?tab=readme-ov-file)
+
+```bash
+#Install with conda
+conda create --name label-studio
+conda activate label-studio
+conda install psycopg2
+pip install label-studio
+
+#run 
+label-studio
+```
+Install Sunlogin 
+[Download the Kylin Arm64 version   ](https://sunlogin.oray.com/download/linux?type=personal&ici=sunlogin_navigation) 
+	
+**SunloginClient_11.0.1.44968_kylin_arm.deb**
+
+```bash
+#install 
+$ sudo dpkg -i SunloginClient_11.0.1.44968_kylin_arm.deb 
+
+#start
+$ /usr/local/sunlogin/bin/sunloginclient
+
+#uninstall
+$ sudo dpkg -r sunloginclient
+
+#Set Sunlogin start with sys starting
+open app "startup application"
+add command "/usr/local/sunlogin/bin/sunloginclient"
+
+## *. install vnc server & viewer
+download ........
+```bash
+# to be continue
+
+```
+Install HIK vision MVS 
+https://www.hikrobotics.com/cn/machinevision/service/download/?module=0
+
+Install Archiconda instead of miniconda
+reference https://blog.csdn.net/gls_nuaa/article/details/135630629
+
+```bash
+wget https://github.com/Archiconda/build-tools/releases/download/0.2.3/Archiconda3-0.2.3-Linux-aarch64.sh
+
+#install
+$ bash Archiconda3-0.2.3-Linux-aarch64.sh
+
+#restart Terminal, check 
+$ conda 
+
+#change conda source
+$ conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+$ conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge 
+$ conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/msys2/
+$ conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/pytorch/
+
+#create conda env 
+$ conda create -n yolov8 python=3.8
+
+#activate env
+$ conda activate yolov8
+
+#remove env
+$ conda remove -n yolov8 --all
+
+```
