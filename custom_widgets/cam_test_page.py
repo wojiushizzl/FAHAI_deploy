@@ -1,6 +1,6 @@
 import flet as ft
 import cv2
-
+from threading import Thread
 
 class CamTestPage(ft.Tab):
     def __init__(self):
@@ -32,7 +32,7 @@ class CamTestPage(ft.Tab):
         ], dense=True, text_size=12, expand=1, value=cam_idx)
         cam_size_label = ft.Text('CAM size', size=12)
         self.cam_size_input = ft.TextField(value=cam_size,text_size=12)
-        cam_image = ft.Image(src='/images/python4.png',filter_quality=ft.FilterQuality.MEDIUM,expand=1)
+        self.cam_image = ft.Image(src='/images/python4.png',filter_quality=ft.FilterQuality.MEDIUM,expand=1)
         self.cam_test_btn = ft.IconButton(ft.icons.PLAY_ARROW, on_click=self.cam_test_btn_clicked)
         self.cam_test_btn.icon_color = ft.colors.GREEN
 
@@ -41,7 +41,7 @@ class CamTestPage(ft.Tab):
         row2 = ft.Row([cam_idx_label, ft.Row(expand=1),self.cam_idx_input, ])
         row3 = ft.Row([cam_size_label,  ft.Row(expand=1),self.cam_size_input])
         row4 = ft.Row([ ft.Row(expand=1),self.cam_test_btn])
-        row5 = ft.Row([cam_image],expand=1)
+        row5 = ft.Row([self.cam_image],expand=1)
 
 
 
@@ -67,12 +67,80 @@ class CamTestPage(ft.Tab):
 
     def cam_start(self):
         """相机开始"""
-
+        self.is_running = True
+        self.cam_thread = Thread(target=self.start_cam_thread)
+        self.cam_thread.start()
 
         print('相机开始')
 
     def cam_stop(self):
         """相机停止"""
         print('相机停止')
+        self.is_running = False
+
+        if self.cap:
+            if self.cam_type == '0':
+                self.cap.release()
+                self.cap = None
+            elif self.cam_type == '1':
+                from hik_CAM.getFrame import exit_cam
+                exit_cam(self.cap, self.data_buf)
+                self.cap = None
+        self.cam_image.src_base64 = ''
+        self.page.update()
+        try:
+            if self.cam_thread:
+                if self.cam_thread.is_alive():
+                    self.cam_thread.join()
+                    self.cam_thread = None
+        except Exception as e:
+            print(f'相机停止线程异常: {e}')
+
+    def start_cam_thread(self):
+        """相机开始线程"""
+        print('相机开始线程')
+        self._init_cam()
+        
+        while self.is_running:
+            print('相机线程运行中')
+            if self.cam_type == '0':
+                ret,frame=self._get_frame_from_cv_cam()
+            elif self.cam_type == '1':
+                ret,frame=self._get_frame_from_hik_cam()
+
+            self.show_frame(frame)
+
+
+
+    def _init_cam(self):
+        """初始化相机"""
+        print('初始化相机')
+        if self.cam_type == '0':
+            self.cap = cv2.VideoCapture(int(self.cam_idx))
+        elif self.cam_type == '1':
+            from hik_CAM.getFrame import start_cam
+            self.cap, self.stOutFrame, self.data_buf = start_cam(int(self.cam_idx))
+
+    def _get_frame_from_cv_cam(self):
+        """获取CV相机帧"""
+        print('获取CV相机帧')
+        ret,frame=self.cap.read()
+        return ret,frame
+
+
+    def _get_frame_from_hik_cam(self):
+        """获取Hikvision相机帧"""
+        print('获取Hikvision相机帧')
+        from hik_CAM.getFrame import get_frame
+        ret, frame = get_frame(self.cap, self.stOutFrame)
+        return ret,frame
+
+
+
+    def show_frame(self,frame):
+        """显示相机帧"""
+        print('显示相机帧')
+        self.cam_image.src_base64 = frame
+        self.page.update()
 
 

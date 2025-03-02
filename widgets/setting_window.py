@@ -24,8 +24,13 @@ class SettingWindow(ft.Container):
         self.base_tab = BaseTab()
         self.surface_tab = SurfaceTab()
         self.function_tab = FunctionTab()
-        self.shortcut_tab = ShortcutTab()
-        tab_widget = ft.Tabs(tabs=[self.base_tab, self.surface_tab, self.function_tab, self.shortcut_tab],
+        # self.shortcut_tab = ShortcutTab()
+        tab_widget = ft.Tabs(tabs=[
+            self.base_tab, 
+            self.surface_tab, 
+            self.function_tab, 
+            # self.shortcut_tab
+            ],
                              animation_duration=300, tab_alignment=ft.TabAlignment.CENTER, expand=1)
         self.content = tab_widget
 
