@@ -10,13 +10,7 @@
 √ MacOS
 ```
 ## 📸软件截图
-<img width="720" alt="5" src="">
-
-
-
-
-
-
+<img width="720" alt="5" src="https://github.com/wojiushizzl/FAHAI_deploy/blob/main/assets/images/homepage.png">
 
 ## 📢近期更新
 ```bash
