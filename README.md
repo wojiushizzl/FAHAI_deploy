@@ -64,7 +64,7 @@ Install VSCode
 [Download arm64 version "code_1.87.2-1709911730_arm64.deb"](https://code.visualstudio.com/docs/?dv=linuxarm64_deb)
 ```bash
 #Install
-$ sudo dpkg -i code_1.87.2-1709911730_arm64.deb
+$ sudo dpkg -i code_1.87.2-1709911730_arm64.deb # edit aglin with your download version
 ```
 Install label-studio  
 [Label studio github](https://github.com/HumanSignal/label-studio?tab=readme-ov-file)
@@ -97,11 +97,6 @@ $ sudo dpkg -r sunloginclient
 #Set Sunlogin start with sys starting
 open app "startup application"
 add command "/usr/local/sunlogin/bin/sunloginclient"
-
-## *. install vnc server & viewer
-download ........
-```bash
-# to be continue
 
 ```
 Install HIK vision MVS 
