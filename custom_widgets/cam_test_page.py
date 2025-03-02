@@ -103,9 +103,9 @@ class CamTestPage(ft.Tab):
         
         while self.is_running:
             print('相机线程运行中')
-            if self.cam_type == '0':
+            if self.cam_type_input.value == '0':
                 ret,frame=self._get_frame_from_cv_cam()
-            elif self.cam_type == '1':
+            elif self.cam_type_input.value == '1':
                 ret,frame=self._get_frame_from_hik_cam()
 
             self.show_frame(frame)
@@ -115,11 +115,11 @@ class CamTestPage(ft.Tab):
     def _init_cam(self):
         """初始化相机"""
         print('初始化相机')
-        if self.cam_type == '0':
-            self.cap = cv2.VideoCapture(int(self.cam_idx))
-        elif self.cam_type == '1':
+        if self.cam_type_input.value == '0':
+            self.cap = cv2.VideoCapture(int(self.cam_idx_input.value))
+        elif self.cam_type_input.value == '1':
             from hik_CAM.getFrame import start_cam
-            self.cap, self.stOutFrame, self.data_buf = start_cam(int(self.cam_idx))
+            self.cap, self.stOutFrame, self.data_buf = start_cam(int(self.cam_idx_input.value))
 
     def _get_frame_from_cv_cam(self):
         """获取CV相机帧"""
