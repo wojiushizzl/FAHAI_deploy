@@ -29,7 +29,7 @@ class MainWindow:
         self.page.window.opacity = 0.995
         self.page.window.min_width = 900
         self.page.window.min_height = 556
-        # self.page.window.full_screen = True
+        self.page.window.full_screen = True
         self.page.window.resizable = True
 
         self.title_bar = TitleBar()
