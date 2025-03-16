@@ -18,8 +18,7 @@ logging.basicConfig(level=logging.INFO, filename='user_data/log.log')
 logger = logging.getLogger(__name__)
 
 
-
-class Screen(ft.Container):
+class Screen_layer(ft.Container):
     def __init__(self, index: str):
         super().__init__()
         self.index = index

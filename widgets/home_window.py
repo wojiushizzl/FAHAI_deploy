@@ -4,6 +4,8 @@ from threading import Thread
 import datetime
 import time
 from custom_widgets.screen import Screen
+from custom_widgets.screen_layer import Screen_layer
+
 class HomeWindow(ft.Container):
     def __init__(self):
         """首页窗口"""
@@ -18,10 +20,11 @@ class HomeWindow(ft.Container):
         self.tab1 = One_Screen()
         self.tab2 = Two_Screen()
         self.tab4 = Four_Screen()
+        self.tab5 = Layer_Screen()
 
         selected_tab = CONFIG_OBJ['home']['selected_tab']
 
-        tab_widget = ft.Tabs(tabs=[self.tab1, self.tab2, self.tab4], animation_duration=300,
+        tab_widget = ft.Tabs(tabs=[self.tab1, self.tab2, self.tab4, self.tab5], animation_duration=300,
                              selected_index=int(selected_tab), tab_alignment=ft.TabAlignment.START,key='home_tab',on_change=self.home_tab_change)
         self.content = tab_widget
 
@@ -93,3 +96,20 @@ class Four_Screen(ft.Tab):
         row1 = ft.Row([self.screen1, self.screen2],expand=1)
         row2 = ft.Row([self.screen3, self.screen4],expand=1)
         self.content = ft.Column([row1, row2],alignment=ft.MainAxisAlignment.CENTER)
+
+
+
+class Layer_Screen(ft.Tab):
+    def __init__(self):
+        """单通道页面"""
+        super().__init__()
+        self.text = 'Layer'
+        self.expand = True
+        self.icon = ft.icons.FIT_SCREEN
+
+        self._init_widgets()
+
+    def _init_widgets(self):
+        """初始化组件"""
+        self.screen1 = Screen_layer('layer_flow')
+        self.content = ft.Column([self.screen1],alignment=ft.MainAxisAlignment.CENTER)
