@@ -1,6 +1,9 @@
 import flet as ft
 import cv2
 from threading import Thread
+from PIL import Image
+import base64
+from io import BytesIO
 
 class CamTestPage(ft.Tab):
     def __init__(self):
@@ -35,17 +38,18 @@ class CamTestPage(ft.Tab):
         self.cam_image = ft.Image(src='/images/python4.png',filter_quality=ft.FilterQuality.MEDIUM,expand=1)
         self.cam_test_btn = ft.IconButton(ft.icons.PLAY_ARROW, on_click=self.cam_test_btn_clicked)
         self.cam_test_btn.icon_color = ft.colors.GREEN
-
+        self.cam_frame_size = ft.Text('CAM frame size', size=12)
 
         row1 = ft.Row([cam_type_label, ft.Row(expand=1),self.cam_type_input, ])
         row2 = ft.Row([cam_idx_label, ft.Row(expand=1),self.cam_idx_input, ])
         row3 = ft.Row([cam_size_label,  ft.Row(expand=1),self.cam_size_input])
         row4 = ft.Row([ ft.Row(expand=1),self.cam_test_btn])
         row5 = ft.Row([self.cam_image],expand=1)
+        row6 = ft.Row([self.cam_frame_size],expand=1)
 
 
 
-        card_content = ft.Container(ft.Column([row1, row2, row3, row4, row5], spacing=20), padding=20)
+        card_content = ft.Container(ft.Column([row1, row2, row3, row4, row5, row6], spacing=20), padding=20)
         card = ft.Card(card_content, variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
         column = ft.Column([cam_test_label,card], width=720, spacing=12)
         tab_container = ft.Container(column, padding=36, alignment=ft.Alignment(0, -1))
@@ -78,14 +82,16 @@ class CamTestPage(ft.Tab):
         print('相机停止')
         self.is_running = False
 
-        if self.cap:
-            if self.cam_type == '0':
-                self.cap.release()
-                self.cap = None
-            elif self.cam_type == '1':
-                from hik_CAM.getFrame import exit_cam
-                exit_cam(self.cap, self.data_buf)
-                self.cap = None
+        try:
+            self.cap.release()
+            self.cap = None
+        except:
+            from hik_CAM.getFrame import exit_cam
+            exit_cam(self.cap, self.data_buf)
+            self.cap = None
+        finally:
+            print('相机释放')
+
         self.cam_image.src_base64 = ''
         self.page.update()
         try:
@@ -107,6 +113,9 @@ class CamTestPage(ft.Tab):
                 ret,frame=self._get_frame_from_cv_cam()
             elif self.cam_type_input.value == '1':
                 ret,frame=self._get_frame_from_hik_cam()
+            
+            if ret == None:
+                continue
 
             self.show_frame(frame)
 
@@ -140,7 +149,17 @@ class CamTestPage(ft.Tab):
     def show_frame(self,frame):
         """显示相机帧"""
         print('显示相机帧')
-        self.cam_image.src_base64 = frame
+
+        # frame 为什么是蓝色的皮肤
+        # 因为frame是BGR格式，而PIL需要的是RGB格式
+        # 所以需要转换
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        self.cam_frame_size.value = f'CAM frame size: {frame.shape[1]}x{frame.shape[0]}'
+        img_pil = Image.fromarray(frame)
+        img_byte_arr = BytesIO()
+        img_pil.save(img_byte_arr, format="JPEG")
+        img_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+        self.cam_image.src_base64 = img_base64
         self.page.update()
 
 

@@ -261,8 +261,8 @@ class FlowSettingPage(ft.Tab):
 
 
 
-        # 其他设置
-        other_label = ft.Text('Other settings', size=15)
+        # 模型配置设置
+        model_config_label = ft.Text('Model config settings', size=15)
 
         tooltip = ft.Tooltip(message='If you open this switch, you can use the model config file to select the models, and above model will be ignored')
         help_icon = ft.Icon('help', color=ft.colors.GREY, size=16, tooltip=tooltip)
@@ -302,9 +302,28 @@ class FlowSettingPage(ft.Tab):
         self.socket_row = ft.Row([ft.Row(expand=1),status_show, column, self.test_socket_btn])
 
 
-        other_card = ft.Card(ft.Container(ft.Column([model_config_use_row, model_config_file_path_row, socket_row, socket_ip_row, socket_port_row, self.socket_row]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
+        model_config_card = ft.Card(ft.Container(ft.Column([model_config_use_row, model_config_file_path_row, socket_row, socket_ip_row, socket_port_row, self.socket_row]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
 
-        column = ft.Column([project_label, project_card, trigger_label, trigger_card, cam_label, cam_card, model_label, model_card, output_label, output_card, logic_label, logic_card, other_label, other_card], width=720, spacing=12)
+        # 分层识别模式
+        layer_label = ft.Text('Layer settings', size=15)
+        tooltip = ft.Tooltip(message='If you open this switch, you can use the layer config file to select the layers, and above model will be ignored')
+        help_icon = ft.Icon('help', color=ft.colors.GREY, size=16, tooltip=tooltip)
+        layer_config_use_key = 'layer_config_use'
+        layer_config_use = CONFIG_OBJ[self.selected_project][layer_config_use_key]
+        layer_config_use_input = ft.Switch(value=layer_config_use, on_change=self.project_config_save,key=layer_config_use_key)
+        layer_config_use_row = ft.Row([ft.Text('Layer Config Use', size=14), help_icon,ft.Row(expand=1), layer_config_use_input])   
+        layer_config_file_path_key = 'layer_config_file_path'
+        self.layer_config_file_path = CONFIG_OBJ[self.selected_project][layer_config_file_path_key]
+        layer_config_file_path_btn= ft.OutlinedButton(content=ft.Text('Import layer config', size=12), on_click=self.import_layer_config_event)
+        layer_config_file_path_row = ft.Row([ft.Text('Layer Config File Path', size=14), ft.Row(expand=1), 
+                                             ft.Text(self.layer_config_file_path[:20] + '...' if len(self.layer_config_file_path) > 20 else self.layer_config_file_path, size=10), 
+                                             layer_config_file_path_btn])   
+        
+        layer_card = ft.Card(ft.Container(ft.Column([layer_config_use_row, layer_config_file_path_row]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
+
+
+
+        column = ft.Column([project_label, project_card, trigger_label, trigger_card, cam_label, cam_card, model_label, model_card, output_label, output_card, logic_label, logic_card, model_config_label, model_config_card, layer_label, layer_card], width=720, spacing=12)
         tab_container = ft.Container(column, padding=36, alignment=ft.Alignment(0, -1))
         self.content = ft.Column([tab_container], scroll=ft.ScrollMode.AUTO)
 
@@ -409,6 +428,8 @@ class FlowSettingPage(ft.Tab):
                     'socket' : False,
                     'socket_ip' : '192.168.100.2',
                     'socket_port' : 9004,
+                    'layer_config_use' : False,
+                    'layer_config_file_path' : 'c:/Users/Administrator/Desktop/test.csv',
 
                 }
                 with open('user_data/config.ini', 'w', encoding='utf-8') as f:
@@ -700,6 +721,30 @@ class FlowSettingPage(ft.Tab):
         self.page.overlay.remove(e.control)
         self.page.update()
         CONFIG_OBJ[self.selected_project]['model2_path'] = model2_path
+        with open('user_data/config.ini', 'w', encoding='utf-8') as f:
+            CONFIG_OBJ.write(f)
+        self.refresh_config()
+
+    def import_layer_config_event(self, e: ft.ControlEvent):
+        """导入分层识别配置事件"""
+        print("===>import_layer_config_event")
+        # 弹窗选择路径 
+        dialog = ft.FilePicker(on_result=self.pick_layer_config_finished)
+        self.page.overlay.append(dialog)
+        self.page.update()  
+        dialog.pick_files('选择分层识别配置', allowed_extensions=['csv'])
+        pass
+
+    def pick_layer_config_finished(self, e: ft.FilePickerResultEvent):
+        """选择分层识别配置结束后触发的事件"""
+        if e.files is None:
+            self.page.overlay.remove(e.control)
+            self.page.update()
+            return
+        layer_config_file_path = e.files[0].path
+        self.page.overlay.remove(e.control)
+        self.page.update()  
+        CONFIG_OBJ[self.selected_project]['layer_config_file_path'] = layer_config_file_path
         with open('user_data/config.ini', 'w', encoding='utf-8') as f:
             CONFIG_OBJ.write(f)
         self.refresh_config()
