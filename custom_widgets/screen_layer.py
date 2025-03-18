@@ -55,9 +55,10 @@ class Screen_layer(ft.Container):
         self.progress_bar = ft.ProgressBar( height=3, visible=False,expand=1)
 
         flow_config = CONFIG_OBJ[self.current_flow]
-        self.objects_sequence=self._load_layer_config(flow_config)
-        self.objects_quantity = len(self.objects_sequence)
-        self.current_object_index = 0
+        if flow_config['layer_config_use'] == 'True':
+            self.objects_sequence=self._load_layer_config(flow_config)
+            self.objects_quantity = len(self.objects_sequence)
+            self.current_object_index = 0
 
 
         
@@ -72,9 +73,9 @@ class Screen_layer(ft.Container):
         self.content = ft.Column([card], alignment=ft.MainAxisAlignment.CENTER)
         # create bgcolor text
         self.objects_row = ft.Row(alignment=ft.MainAxisAlignment.CENTER) 
-        for object in self.objects_sequence:
-            self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
-        # self.objects_row.controls[1].bgcolor = ft.colors.GREEN
+        if flow_config['layer_config_use'] == 'True':
+            for object in self.objects_sequence:
+                self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
 
         self.content.controls.append(self.objects_row)
 
@@ -88,10 +89,14 @@ class Screen_layer(ft.Container):
         self.current_flow = flow
 
         flow_config = CONFIG_OBJ[self.current_flow]
-        self.objects_sequence=self._load_layer_config(flow_config)
         self.objects_row.controls = []
-        for object in self.objects_sequence:
-            self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
+
+        if flow_config['layer_config_use'] == 'True':
+            self.objects_sequence=self._load_layer_config(flow_config)
+            self.objects_quantity = len(self.objects_sequence)
+            self.current_object_index = 0
+            for object in self.objects_sequence:
+                self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
         self.page.update()
 
 
@@ -203,7 +208,6 @@ class Screen_layer(ft.Container):
                 #实时探测模式
                 if flow_config['layer_config_use'] == 'True':
                     #分层识别模式
-                    objects_sequence=self._load_layer_config(flow_config)
                     print(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] objects_sequence: {objects_sequence}")
                     ret,frame=self._get_frame_from_cam(flow_config)
                     res=self._detect_object(frame,flow_config)
@@ -364,9 +368,16 @@ class Screen_layer(ft.Container):
         model_confidence = flow_config['model1_confidence']
         model_iou = flow_config['model1_iou']
         model_use = flow_config['model1_use']
+        flow_config = CONFIG_OBJ[self.current_flow]
+
         if_use_model_config = flow_config['model_config_use']
+        
+
         if if_use_model_config == 'True':
             return True
+        elif flow_config['layer_config_use'] == 'True':
+            model_path,conf_thres,iou_thres,img_size= self._load_layer_model_config(flow_config)
+            self.model=YOLO(model_path)
         else:
             if model_use:
                 try:
@@ -558,7 +569,6 @@ class Screen_layer(ft.Container):
             model_path,conf_thres,iou_thres,img_size= self._load_layer_model_config(flow_config)
             if model_path is None:
                 return None
-            self.model = YOLO(model_path)
             classes = self.model.names
             class_values = list(classes.values())
             class_name=self.objects_sequence[self.current_object_index]
@@ -598,7 +608,6 @@ class Screen_layer(ft.Container):
             logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Socket TCP connect failed Error: {e}")
         finally:
             self.socket_client.close()
-        # TODO 获取不到PN逻辑
         data_PN=int(self.socket_data[-10:])
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] data: {self.socket_data}    data_PN: {data_PN}")
         if data_PN not in model_config_file.index:
@@ -621,6 +630,7 @@ class Screen_layer(ft.Container):
         return model_path,conf,iou,img_size
     def _load_layer_model_config(self, flow_config):
         """加载分层识别配置"""
+        # TODO bug : layer model ,check model bug 
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Load layer config...")
         layer_config_file_path = flow_config['layer_config_file_path']
         layer_config_file = pd.read_csv(layer_config_file_path, header=0, index_col=0, encoding='utf-8')
