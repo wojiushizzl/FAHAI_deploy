@@ -56,8 +56,8 @@ class Screen_layer(ft.Container):
 
         flow_config = CONFIG_OBJ[self.current_flow]
         objects_sequence=self._load_layer_config(flow_config)
-        # create bgcolor text
-        # TODO 
+
+        
 
         row1 = ft.Row([select_flow_label, flow_select, self.start_stop_btn])
         row2 = ft.Row([self.progress_bar])
@@ -67,7 +67,13 @@ class Screen_layer(ft.Container):
         card = ft.Card(card_content, variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(1,1,1,1),expand=1)
 
         self.content = ft.Column([card], alignment=ft.MainAxisAlignment.CENTER)
+        # create bgcolor text
+        self.objects_row = ft.Row(alignment=ft.MainAxisAlignment.CENTER) 
+        for object in objects_sequence:
+            self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
+        # self.objects_row.controls[1].bgcolor = ft.colors.GREEN
 
+        self.content.controls.append(self.objects_row)
 
     
     def flow_select_change(self, e: ft.ControlEvent):
@@ -77,6 +83,15 @@ class Screen_layer(ft.Container):
         self.flow_result.value = f"当前流程：{flow}"
         self.page.update()
         self.current_flow = flow
+
+        flow_config = CONFIG_OBJ[self.current_flow]
+        objects_sequence=self._load_layer_config(flow_config)
+        self.objects_row.controls = []
+        for object in objects_sequence:
+            self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
+        self.page.update()
+
+
         CONFIG_OBJ['home'][self.index] = flow
         with open('user_data/config.ini', 'w', encoding='utf-8') as f:
             CONFIG_OBJ.write(f)
