@@ -206,9 +206,10 @@ class Screen_layer(ft.Container):
             self.page.update()
             if flow_config['trigger_type'] == '0':
                 #实时探测模式
+                
                 if flow_config['layer_config_use'] == 'True':
                     #分层识别模式
-                    print(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] objects_sequence: {objects_sequence}")
+                    # print(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] objects_sequence: {objects_sequence}")
                     ret,frame=self._get_frame_from_cam(flow_config)
                     res=self._detect_object(frame,flow_config)
                     if res is None:
@@ -630,7 +631,6 @@ class Screen_layer(ft.Container):
         return model_path,conf,iou,img_size
     def _load_layer_model_config(self, flow_config):
         """加载分层识别配置"""
-        # TODO bug : layer model ,check model bug 
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Load layer config...")
         layer_config_file_path = flow_config['layer_config_file_path']
         layer_config_file = pd.read_csv(layer_config_file_path, header=0, index_col=0, encoding='utf-8')
