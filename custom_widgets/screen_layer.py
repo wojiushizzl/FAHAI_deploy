@@ -203,7 +203,6 @@ class Screen_layer(ft.Container):
                     #分层识别模式
                     objects_sequence=self._load_layer_config(flow_config)
                     print(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] objects_sequence: {objects_sequence}")
-                    # TODO 分层识别
                     ret,frame=self._get_frame_from_cam(flow_config)
                     res=self._detect_object(frame,flow_config)
                     if res is None:
@@ -646,6 +645,7 @@ class Screen_layer(ft.Container):
         res_json_load = json.loads(result[0].tojson())
         detected_objects = [r['name'] for r in res_json_load]   
         if_model_config_use = flow_config['model_config_use']
+        if_layer_config_use = flow_config['layer_config_use']
         if if_model_config_use == 'True':
             self.selected_objects = self.selected_objects
         else:
@@ -654,7 +654,24 @@ class Screen_layer(ft.Container):
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Selected_objects: {self.selected_objects}")
         logic_type = flow_config['logic_type']
         if logic_type == '0':  # detected objects [in] selected_objects
-            check_result = all(item in self.selected_objects for item in detected_objects) and len(detected_objects) > 0
+            if if_layer_config_use == 'True':
+                check_result = all(item in self.selected_objects for item in detected_objects) and len(detected_objects) > 0
+                if self.current_object_index < len(self.objects_sequence)-1:
+                    self.objects_row.controls[self.current_object_index].bgcolor = ft.colors.GREEN
+                    self.page.update()
+                    self.current_object_index +=1
+                else:
+                    self.objects_row.controls[self.current_object_index].bgcolor = ft.colors.GREEN
+                    self.page.update()
+                    self.current_object_index=0
+                    time.sleep(3)
+                    # reset self.objects_row.controlss
+
+
+                    
+            else:
+                check_result = all(item in self.selected_objects for item in detected_objects) and len(detected_objects) > 0
+            
 
         elif logic_type == '1':  # selected_objects [in] detected objects
             check_result = all(item in detected_objects for item in self.selected_objects) and len(detected_objects) > 0
