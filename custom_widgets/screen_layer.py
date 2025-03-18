@@ -114,6 +114,8 @@ class Screen_layer(ft.Container):
         self.progress_bar.visible = False
         # self.page.update()
         
+        self.current_object_index=0
+        self._reset_objects_row()
         self.is_running = False
 
         if self.cap:
@@ -209,7 +211,6 @@ class Screen_layer(ft.Container):
                         continue
                     ok_or_ng=self._logic_process(res,flow_config)
                     self._output_result(res,ok_or_ng,flow_config)
-                    time.sleep(3)
                 else:   
                     ret,frame=self._get_frame_from_cam(flow_config)
                     res=self._detect_object(frame,flow_config)
@@ -655,20 +656,10 @@ class Screen_layer(ft.Container):
         logic_type = flow_config['logic_type']
         if logic_type == '0':  # detected objects [in] selected_objects
             if if_layer_config_use == 'True':
-                check_result = all(item in self.selected_objects for item in detected_objects) and len(detected_objects) > 0
-                if self.current_object_index < len(self.objects_sequence)-1:
-                    self.objects_row.controls[self.current_object_index].bgcolor = ft.colors.GREEN
-                    self.page.update()
-                    self.current_object_index +=1
-                else:
-                    self.objects_row.controls[self.current_object_index].bgcolor = ft.colors.GREEN
-                    self.page.update()
-                    self.current_object_index=0
-                    time.sleep(3)
-                    # reset self.objects_row.controlss
+                logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Select_objects: {self.objects_sequence[self.current_object_index]}")
+                check_result = all(item in self.objects_sequence[self.current_object_index] for item in detected_objects) and len(detected_objects) > 0
 
 
-                    
             else:
                 check_result = all(item in self.selected_objects for item in detected_objects) and len(detected_objects) > 0
             
@@ -680,6 +671,11 @@ class Screen_layer(ft.Container):
         else:
             check_result = False
         return check_result
+    def _reset_objects_row(self):
+        self.objects_row.controls=[]
+        for object in self.objects_sequence:
+            self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
+        self.page.update()
 
     def _output_result(self,res, ok_ng: bool, flow_config):
         """输出结果"""
@@ -688,6 +684,22 @@ class Screen_layer(ft.Container):
         if_visual_output = flow_config['visual']
         if_plc_output = flow_config['plc_output']
         if_save_output = flow_config['result_save']
+        if_layer_config_use = flow_config['layer_config_use']
+
+        if if_layer_config_use =='True':
+            if ok_ng:
+                if self.current_object_index < len(self.objects_sequence)-1:
+                    self.objects_row.controls[self.current_object_index].bgcolor = ft.colors.GREEN
+                    self.page.update()
+                    self.current_object_index +=1
+                else:
+                    self.objects_row.controls[self.current_object_index].bgcolor = ft.colors.GREEN
+                    self.page.update()
+                    self.current_object_index=0
+                    time.sleep(3)
+                    self._reset_objects_row()
+            else:
+                pass
 
         if if_gpio_output == 'True':
             self._gpio_output( ok_ng, flow_config)
@@ -700,6 +712,8 @@ class Screen_layer(ft.Container):
         
         if if_save_output == 'True':
             self._save_output(res, ok_ng, flow_config)
+        
+        
 
         
     def _gpio_output(self, ok_ng: bool, flow_config):
