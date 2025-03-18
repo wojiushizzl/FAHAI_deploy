@@ -55,7 +55,10 @@ class Screen_layer(ft.Container):
         self.progress_bar = ft.ProgressBar( height=3, visible=False,expand=1)
 
         flow_config = CONFIG_OBJ[self.current_flow]
-        objects_sequence=self._load_layer_config(flow_config)
+        self.objects_sequence=self._load_layer_config(flow_config)
+        self.objects_quantity = len(self.objects_sequence)
+        self.current_object_index = 0
+
 
         
 
@@ -69,7 +72,7 @@ class Screen_layer(ft.Container):
         self.content = ft.Column([card], alignment=ft.MainAxisAlignment.CENTER)
         # create bgcolor text
         self.objects_row = ft.Row(alignment=ft.MainAxisAlignment.CENTER) 
-        for object in objects_sequence:
+        for object in self.objects_sequence:
             self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
         # self.objects_row.controls[1].bgcolor = ft.colors.GREEN
 
@@ -85,9 +88,9 @@ class Screen_layer(ft.Container):
         self.current_flow = flow
 
         flow_config = CONFIG_OBJ[self.current_flow]
-        objects_sequence=self._load_layer_config(flow_config)
+        self.objects_sequence=self._load_layer_config(flow_config)
         self.objects_row.controls = []
-        for object in objects_sequence:
+        for object in self.objects_sequence:
             self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
         self.page.update()
 
@@ -544,16 +547,28 @@ class Screen_layer(ft.Container):
         """检测物体"""
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Detect Object...")
         if_model_config_use = flow_config['model_config_use']
+        if_layer_config_use = flow_config['layer_config_use']
         if if_model_config_use == 'True':
             model_path,conf_thres,iou_thres,img_size= self._load_model_config(flow_config)
             if model_path is None:
                 return None
             self.model = YOLO(model_path)
+            results = self.model(frame, conf=conf_thres, iou=iou_thres, imgsz=img_size)
+        elif if_layer_config_use == 'True':
+            model_path,conf_thres,iou_thres,img_size= self._load_layer_model_config(flow_config)
+            if model_path is None:
+                return None
+            self.model = YOLO(model_path)
+            classes = self.model.names
+            class_values = list(classes.values())
+            class_name=self.objects_sequence[self.current_object_index]
+            class_index=class_values.index(class_name)
+            results = self.model(frame, conf=conf_thres, iou=iou_thres, imgsz=img_size,classes=[class_index])
         else:
             conf_thres = float(flow_config['model1_confidence'])
             iou_thres = float(flow_config['model1_iou'])
             img_size = int(flow_config['cam1_size'])
-        results = self.model(frame, conf=conf_thres, iou=iou_thres, imgsz=img_size)
+            results = self.model(frame, conf=conf_thres, iou=iou_thres, imgsz=img_size)
         return results
 
     def _load_model_config(self, flow_config):
@@ -603,6 +618,20 @@ class Screen_layer(ft.Container):
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- iou: {iou}")
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- img_size: {img_size}")
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- selected_objects: {self.selected_objects}")
+        return model_path,conf,iou,img_size
+    def _load_layer_model_config(self, flow_config):
+        """加载分层识别配置"""
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Load layer config...")
+        layer_config_file_path = flow_config['layer_config_file_path']
+        layer_config_file = pd.read_csv(layer_config_file_path, header=0, index_col=0, encoding='utf-8')
+        layer_PN=self.current_flow
+        if layer_PN not in layer_config_file.index:
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] layer_PN: {layer_PN} not in layer_config_file")
+            return None,None,None,None
+        model_path=layer_config_file.loc[layer_PN]['model']
+        conf=float(layer_config_file.loc[layer_PN]['conf'])
+        iou=float(layer_config_file.loc[layer_PN]['iou'])
+        img_size=int(layer_config_file.loc[layer_PN]['imgsz'])
         return model_path,conf,iou,img_size
     def _reset_pn_in_model_config(self, flow_config):
         """重置PN在模型配置中"""
