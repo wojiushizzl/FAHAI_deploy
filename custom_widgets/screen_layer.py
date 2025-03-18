@@ -54,6 +54,11 @@ class Screen_layer(ft.Container):
         self.start_stop_btn = ft.IconButton(icon=ft.icons.PLAY_ARROW, on_click=self.on_start_stop_btn_click)
         self.progress_bar = ft.ProgressBar( height=3, visible=False,expand=1)
 
+        flow_config = CONFIG_OBJ[self.current_flow]
+        objects_sequence=self._load_layer_config(flow_config)
+        # create bgcolor text
+        # TODO 
+
         row1 = ft.Row([select_flow_label, flow_select, self.start_stop_btn])
         row2 = ft.Row([self.progress_bar])
         row4 = ft.Row([self.flow_result])
@@ -176,13 +181,25 @@ class Screen_layer(ft.Container):
             self.page.update()
             if flow_config['trigger_type'] == '0':
                 #实时探测模式
-                ret,frame=self._get_frame_from_cam(flow_config)
-
-                res=self._detect_object(frame,flow_config)
-                if res is None:
-                    continue
-                ok_or_ng=self._logic_process(res,flow_config)
-                self._output_result(res,ok_or_ng,flow_config)
+                if flow_config['layer_config_use'] == 'True':
+                    #分层识别模式
+                    objects_sequence=self._load_layer_config(flow_config)
+                    print(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] objects_sequence: {objects_sequence}")
+                    # TODO 分层识别
+                    ret,frame=self._get_frame_from_cam(flow_config)
+                    res=self._detect_object(frame,flow_config)
+                    if res is None:
+                        continue
+                    ok_or_ng=self._logic_process(res,flow_config)
+                    self._output_result(res,ok_or_ng,flow_config)
+                    time.sleep(3)
+                else:   
+                    ret,frame=self._get_frame_from_cam(flow_config)
+                    res=self._detect_object(frame,flow_config)
+                    if res is None:
+                        continue
+                    ok_or_ng=self._logic_process(res,flow_config)
+                    self._output_result(res,ok_or_ng,flow_config)
 
             elif flow_config['trigger_type'] == '1':
                 #触发器模式
@@ -710,3 +727,17 @@ class Screen_layer(ft.Container):
 
         except Exception as e:
             logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>Error saving results: {e}")
+
+
+    def _load_layer_config(self, flow_config):
+        """加载分层识别配置"""
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Load layer config...")
+        layer_config_file_path = flow_config['layer_config_file_path']
+        layer_config_file = pd.read_csv(layer_config_file_path, header=0, index_col=0, encoding='utf-8')
+        layer_PN=self.current_flow
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] layer_PN: {layer_PN}")
+        if layer_PN not in layer_config_file.index:
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] layer_PN: {layer_PN} not in layer_config_file")
+            return None
+        objects_sequence=layer_config_file.loc[layer_PN]['objects_sequence'].split(',')[0:-1]
+        return objects_sequence
