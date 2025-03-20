@@ -54,7 +54,10 @@ sudo sudo apt update
 sudo apt install libmpv-dev libmpv1
 sudo apt-get install libopenblas-dev
 ```
-
+- 安装Jetson.GPIO，调用jetson的GPIO
+```bash
+pip install Jetson.GPIO
+```
 
 ## 🐍在Python中使用
 项目启动文件为根目录中的main.py
