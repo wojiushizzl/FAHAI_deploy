@@ -118,9 +118,10 @@ class Screen_layer(ft.Container):
         self.start_stop_btn.icon = ft.icons.PLAY_ARROW
         self.progress_bar.visible = False
         # self.page.update()
-        
-        self.current_object_index=0
-        self._reset_objects_row()
+        flow_config = CONFIG_OBJ[self.current_flow]
+        if flow_config['layer_config_use'] == 'True':
+            self.current_object_index=0
+            self._reset_objects_row()
         self.is_running = False
 
         if self.cap:
