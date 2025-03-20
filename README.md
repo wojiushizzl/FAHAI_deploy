@@ -27,6 +27,23 @@ pip install -r requirements.txt
 在NVIDIA Jetson 设备上安装需要安装特定版本torch 及 torch vision
 https://docs.ultralytics.com/zh/guides/nvidia-jetson/#install-ultralytics-package   
 
+先卸载已安装的torch
+```bash
+pip uninstall torch torchvision
+```
+安装torch torch 对应jetpack版本
+```bash
+pip install https://github.com/ultralytics/assets/releases/download/v0.0.0/torch-2.5.0a0+872d972e41.nv24.08-cp310-cp310-linux_aarch64.whl
+pip install https://github.com/ultralytics/assets/releases/download/v0.0.0/torchvision-0.20.0a0+afc54f7-cp310-cp310-linux_aarch64.whl
+```
+安装 cuSPARSELt 的依赖性问题 torch 2.5.0
+```bash
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/arm64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update
+sudo apt-get -y install libcusparselt0 libcusparselt-dev
+```
+
 
 ## 🐍在Python中使用
 项目启动文件为根目录中的main.py
