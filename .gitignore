@@ -171,7 +171,7 @@ cython_debug/
 .pypirc
 
 metadata.txt
-/user_data
 user_data/config.ini
-user_data/config.ini
+user_data/results
+
 *.ini

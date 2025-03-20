@@ -1,0 +1,3 @@
+trigger,model,conf,iou,imgsz,objects_sequence
+layerDetectModel,/Users/mse6hzp/Documents/GitHub/Flet-GUI-basic/assets/models/yolov8n.pt,0.5,0.5,640,"person,person,person,person,person,"
+layerDetectModel2,/Users/mse6hzp/Documents/GitHub/Flet-GUI-basic/assets/models/yolov8n.pt,0.5,0.5,640,"person,car,person,"
