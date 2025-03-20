@@ -18,8 +18,11 @@
 ```
 
 ## 💻下载安装
-推荐使用[**Python>=3.8**](https://www.python.org/)
+推荐使用[**Python>=3.8**](https://www.python.org/)，推荐使用conda配置python环境
+- jetpack 5.0-5.9 安装python3.8
+- jetpack 6.0-6.9 安装python3.10 （推荐）
 
+在环境中安装依赖
 ```bash
 pip install -r requirements.txt
 ```
@@ -27,21 +30,29 @@ pip install -r requirements.txt
 在NVIDIA Jetson 设备上安装需要安装特定版本torch 及 torch vision
 https://docs.ultralytics.com/zh/guides/nvidia-jetson/#install-ultralytics-package   
 
-先卸载已安装的torch
+以下为jetpack 6.0 安装torch 2.5.0 的步骤
+- 先卸载已安装的torch
 ```bash
 pip uninstall torch torchvision
 ```
-安装torch torch 对应jetpack版本
+- 安装torch torch 对应jetpack版本
 ```bash
 pip install https://github.com/ultralytics/assets/releases/download/v0.0.0/torch-2.5.0a0+872d972e41.nv24.08-cp310-cp310-linux_aarch64.whl
 pip install https://github.com/ultralytics/assets/releases/download/v0.0.0/torchvision-0.20.0a0+afc54f7-cp310-cp310-linux_aarch64.whl
 ```
-安装 cuSPARSELt 的依赖性问题 torch 2.5.0
+- 安装 cuSPARSELt 的依赖性问题 torch 2.5.0
 ```bash
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/arm64/cuda-keyring_1.1-1_all.deb
 sudo dpkg -i cuda-keyring_1.1-1_all.deb
 sudo apt-get update
 sudo apt-get -y install libcusparselt0 libcusparselt-dev
+```
+
+- 安装 libmpv-dev and libmpv1
+```bash
+sudo sudo apt update
+sudo apt install libmpv-dev libmpv1
+sudo apt-get install libopenblas-dev
 ```
 
 
@@ -119,15 +130,13 @@ add command "/usr/local/sunlogin/bin/sunloginclient"
 Install HIK vision MVS 
 https://www.hikrobotics.com/cn/machinevision/service/download/?module=0
 
+
 Install Archiconda instead of miniconda
 reference https://blog.csdn.net/gls_nuaa/article/details/135630629
-
 ```bash
 wget https://github.com/Archiconda/build-tools/releases/download/0.2.3/Archiconda3-0.2.3-Linux-aarch64.sh
-
 #install
 $ bash Archiconda3-0.2.3-Linux-aarch64.sh
-
 #restart Terminal, check 
 $ conda 
 
