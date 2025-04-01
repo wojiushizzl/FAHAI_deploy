@@ -13,12 +13,14 @@ import os
 import pandas as pd
 import logging
 import threading
+import math
+
 #save log to file
 logging.basicConfig(level=logging.INFO, filename='user_data/log.log')
 logger = logging.getLogger(__name__)
-#TODO logger auto clean 
 
-class Screen_position(ft.Container):
+
+class Screen(ft.Container):
     def __init__(self, index: str):
         super().__init__()
         self.index = index
@@ -681,14 +683,54 @@ class Screen_position(ft.Container):
             check_result = len(detected_objects) == len(self.selected_objects) and all(item in detected_objects for item in self.selected_objects)
         elif logic_type == '3':  # detected objects [in] target position (position model)
             logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Res json: {res_json_load}")
-            boxes=[r['box'] for r in res_json_load]   
+            boxes=[r['box'] for r in res_json_load if r['name'] in self.selected_objects]   
             x1=[r['x1'] for r in boxes]   
             x2=[r['x2'] for r in boxes]   
             y1=[r['y1'] for r in boxes]   
             y2=[r['y2'] for r in boxes] 
-            
-            
-
+            # Find all center points of the boxes
+            center_points = [(int((x1[i] + x2[i]) / 2), int((y1[i] + y2[i]) / 2)) for i in range(len(x1))]
+            # Find the center point of the target position
+            point_use = []
+            point_use.append(flow_config['position_1_use'])
+            point_use.append(flow_config['position_2_use'])
+            point_use.append(flow_config['position_3_use'])
+            point_use.append(flow_config['position_4_use'])
+            point_use.append(flow_config['position_5_use'])
+            point_use.append(flow_config['position_6_use'])
+            target_center_point = []
+            target_center_point.append((int(flow_config['position_1_center_x']), int(flow_config['position_1_center_y'])))
+            target_center_point.append((int(flow_config['position_2_center_x']), int(flow_config['position_2_center_y'])))
+            target_center_point.append((int(flow_config['position_3_center_x']), int(flow_config['position_3_center_y'])))
+            target_center_point.append((int(flow_config['position_4_center_x']), int(flow_config['position_4_center_y'])))
+            target_center_point.append((int(flow_config['position_5_center_x']), int(flow_config['position_5_center_y'])))
+            target_center_point.append((int(flow_config['position_6_center_x']), int(flow_config['position_6_center_y'])))
+            target_radius = []
+            target_radius.append(int(flow_config['position_1_radius']))
+            target_radius.append(int(flow_config['position_2_radius']))
+            target_radius.append(int(flow_config['position_3_radius']))
+            target_radius.append(int(flow_config['position_4_radius']))
+            target_radius.append(int(flow_config['position_5_radius']))
+            target_radius.append(int(flow_config['position_6_radius']))
+            # Calculate the distance between the center points
+            self.target_check_exist = []                
+            for i in range(len(point_use)):
+                if point_use[i]=='True':
+                    if len(center_points) == 0:
+                        point_i_exist=False
+                        self.target_check_exist.append(point_i_exist)
+                    else:
+                        for j in range(len(center_points)):
+                            distance = math.sqrt((center_points[j][0] - target_center_point[i][0]) ** 2 + (center_points[j][1] - target_center_point[i][1]) ** 2)
+                            if distance <= target_radius[i]:
+                                point_i_exist=True
+                                break
+                            else:
+                                point_i_exist=False
+                        self.target_check_exist.append(point_i_exist)
+                else:
+                    self.target_check_exist.append('n/a')
+            logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Target check exist: {self.target_check_exist}")
             check_result = True
         else:
             check_result = False
@@ -770,6 +812,23 @@ class Screen_position(ft.Container):
         if if_model_config_use == 'True':
             res_plotted = cv2.putText(res_plotted, self.socket_data, (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1,
                                     (0, 0, 255), 2, cv2.LINE_AA)
+            
+        # add target check exist text
+        if_position_config_use = flow_config['position_config_use']
+        if if_position_config_use == 'True':
+            # 绘制目标位置的圆，并根据结果True/False/n/a绘制不同的颜色
+            for i in range(len(self.target_check_exist)):
+
+                circle_center_x_name = 'position_' + str(i+1) + '_center_x'
+                circle_center_y_name = 'position_' + str(i+1) + '_center_y'
+                circle_radius_name = 'position_' + str(i+1) + '_radius'
+                if self.target_check_exist[i] == True:
+                    res_plotted = cv2.circle(res_plotted, (int(flow_config[circle_center_x_name]), int(flow_config[circle_center_y_name])), int(flow_config[circle_radius_name]), (0, 255, 0), 2)
+                elif self.target_check_exist[i] == False:
+                    res_plotted = cv2.circle(res_plotted, (int(flow_config[circle_center_x_name]), int(flow_config[circle_center_y_name])), int(flow_config[circle_radius_name]), (0, 0, 255), 2)
+                else:
+                    res_plotted = cv2.circle(res_plotted, (int(flow_config[circle_center_x_name]), int(flow_config[circle_center_y_name])), int(flow_config[circle_radius_name]), (0, 0, 0), 2)
+
         img_pil = Image.fromarray(res_plotted)
         img_byte_arr = BytesIO()
         img_pil.save(img_byte_arr, format="JPEG")
@@ -780,12 +839,21 @@ class Screen_position(ft.Container):
     def _plc_output(self, ok_ng: bool, flow_config):
         """PLC输出"""
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] PLC output...")
-        plc_address = int(flow_config['plc_output_address'])
-        plc_value = int(flow_config['plc_output_value'])
-        if ok_ng:
-            self.client.write_register(plc_address, plc_value)
+        if_position_config_use = flow_config['position_config_use']
+        if if_position_config_use == 'True':
+            for i in range(len(self.target_check_exist)):
+                plc_address = int(flow_config['position_' + str(i+1) + '_output_address'])
+                if self.target_check_exist[i] == True:
+                    self.client.write_register(plc_address,1)
+                else:
+                    self.client.write_register(plc_address,0)
         else:
-            self.client.write_register(plc_address,0)
+            plc_address = int(flow_config['plc_output_address'])
+            plc_value = int(flow_config['plc_output_value'])
+            if ok_ng:
+                self.client.write_register(plc_address, plc_value)
+            else:
+                self.client.write_register(plc_address,0)
 
     def _save_output(self, res, ok_ng: bool, flow_config):
         """保存输出"""

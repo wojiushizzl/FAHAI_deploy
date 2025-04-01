@@ -4,7 +4,7 @@ from threading import Thread
 import datetime
 import time
 from custom_widgets.screen import Screen
-from custom_widgets.screen_position import Screen_position
+from custom_widgets.screen_position import Screen as Screen_position
 
 
 class HomeWindow(ft.Container):

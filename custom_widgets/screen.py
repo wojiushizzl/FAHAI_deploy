@@ -16,7 +16,6 @@ import threading
 #save log to file
 logging.basicConfig(level=logging.INFO, filename='user_data/log.log')
 logger = logging.getLogger(__name__)
-#TODO logger auto clean 
 
 class Screen(ft.Container):
     def __init__(self, index: str):
