@@ -334,19 +334,31 @@ class FlowSettingPage(ft.Tab):
         position_config_use = CONFIG_OBJ[self.selected_project][position_config_use_key]
         position_config_use_input = ft.Switch(value=position_config_use, on_change=self.project_config_save,key=position_config_use_key)
         position_config_use_row = ft.Row([ft.Text('Position Config Use', size=14), help_icon,ft.Row(expand=1), position_config_use_input])
+
         position_1_use_key = 'position_1_use'
         position_1_use = CONFIG_OBJ[self.selected_project][position_1_use_key]
         position_1_use_input = ft.Switch(value=position_1_use, on_change=self.project_config_save,key=position_1_use_key)
-        position_1_use_row = ft.Row([ft.Text('Position 1 Use', size=14), help_icon,ft.Row(expand=1), position_1_use_input])
-        position_1_center_key = 'position_1_center'
-        position_1_center = CONFIG_OBJ[self.selected_project][position_1_center_key]
-        position_1_center_x_input = ft.TextField(value=position_1_center, on_change=self.project_config_save,key=position_1_center_key)
-        position_1_center_y_input = ft.TextField(value=position_1_center, on_change=self.project_config_save,key=position_1_center_key)
+        position_1_use_row = ft.Row([ft.Text('Position 1 Use', size=14), ft.Row(expand=1), position_1_use_input])
+        position_1_center_x_key = 'position_1_center_x'
+        position_1_center_y_key = 'position_1_center_y'
+        position_1_center_x = CONFIG_OBJ[self.selected_project][position_1_center_x_key]
+        position_1_center_y = CONFIG_OBJ[self.selected_project][position_1_center_y_key]
+        position_1_center_x_input = ft.TextField(value=position_1_center_x, on_change=self.project_config_save,key=position_1_center_x_key,width=100)
+        position_1_center_y_input = ft.TextField(value=position_1_center_y, on_change=self.project_config_save,key=position_1_center_y_key,width=100)
         position_1_center_row = ft.Row([ft.Text('Position 1 Center', size=14), ft.Row(expand=1), position_1_center_x_input, position_1_center_y_input])
-        
-        
+        position_1_radius_key = 'position_1_radius'
+        position_1_radius = CONFIG_OBJ[self.selected_project][position_1_radius_key]
+        position_1_radius_input = ft.TextField(value=position_1_radius, on_change=self.project_config_save,key=position_1_radius_key,width=100)
+        position_1_radius_row = ft.Row([ft.Text('Position 1 Radius', size=14), ft.Row(expand=1), position_1_radius_input])  
+        position_1_output_address_key = 'position_1_output_address'
+        position_1_output_address = CONFIG_OBJ[self.selected_project][position_1_output_address_key]
+        position_1_output_address_input = ft.TextField(value=position_1_output_address, on_change=self.project_config_save,key=position_1_output_address_key,width=100)
+        position_1_output_address_row = ft.Row([ft.Text('Position 1 Output Address', size=14), ft.Row(expand=1), position_1_output_address_input])
+        position_1_row1=ft.Row([position_1_use_row,ft.Row(expand=1),position_1_output_address_row])
+        position_1_row2=ft.Row([position_1_center_row,ft.Row(expand=1),position_1_radius_row])
 
-        position_card = ft.Card(ft.Container(ft.Column([position_config_use_row,position_1_use_row,position_1_center_row]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
+        
+        position_card = ft.Card(ft.Container(ft.Column([position_config_use_row,position_1_row1,position_1_row2]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
 
 
 
@@ -457,6 +469,7 @@ class FlowSettingPage(ft.Tab):
                     'layer_config_use' : False,
                     'layer_config_file_path' : 'c:/Users/Administrator/Desktop/test.csv',
                     'position_config_use' : False,
+                    
 
                 }
                 with open('user_data/config.ini', 'w', encoding='utf-8') as f:
