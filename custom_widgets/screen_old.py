@@ -155,14 +155,14 @@ class Screen(ft.Container):
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Start Flow Thread Loop")
         while self.is_running:
             need_check_modbus_connect = flow_config['trigger_type'] == '1' or flow_config['plc_output'] == 'True' or flow_config['status_output'] == 'True'
-            if not self.socket_connect_result and need_check_modbus_connect:
-                self.flow_result.value = f"当前流程：[{self.current_flow}] Socket TCP connect failed! try reconnect..."
+            if (not self.modbus_connect_result) and need_check_modbus_connect:
+                self.flow_result.value = f"当前流程：[{self.current_flow}] Modbus TCP connect failed! try reconnect..."
                 self.visual_result.src_base64 = ''
                 self.page.update()
                 continue
             need_check_socket_connect = flow_config['model_config_use'] == 'True' or flow_config['socket'] == 'True'
-            if not self.modbus_connect_result and need_check_socket_connect:
-                self.flow_result.value = f"当前流程：[{self.current_flow}] PLC connection failed! try reconnect..."
+            if (not self.socket_connect_result) and need_check_socket_connect:
+                self.flow_result.value = f"当前流程：[{self.current_flow}] Socket connection failed! try reconnect..."
                 self.visual_result.src_base64 = ''
                 self.page.update()
                 continue
