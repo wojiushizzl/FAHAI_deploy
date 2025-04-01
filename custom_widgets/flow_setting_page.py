@@ -238,6 +238,7 @@ class FlowSettingPage(ft.Tab):
             ft.dropdown.Option('0', 'detected objects [in] selected objects'),
             ft.dropdown.Option('1', 'selected objects [in] detected objects'),
             ft.dropdown.Option('2', 'detected objects [=] selected objects'),
+            ft.dropdown.Option('3', 'detected objects [in] target position (position model) '),
         ], dense=True, text_size=14, expand=1, value=logic_type_value, on_change=self.project_config_save,key=logic_type_key)
         logic_type_row = ft.Row([logic_type_label, ft.Row(expand=1), logic_type_input])
 
@@ -323,12 +324,37 @@ class FlowSettingPage(ft.Tab):
 
 
 
-        column = ft.Column([project_label, project_card, trigger_label, trigger_card, cam_label, cam_card, model_label, model_card, output_label, output_card, logic_label, logic_card, model_config_label, model_config_card, layer_label, layer_card], width=720, spacing=12)
+
+
+        # 位置判定输出
+        position_label = ft.Text('Signal target multi-position settings', size=15)
+        tooltip = ft.Tooltip(message='If you open this switch, you can use the position config file to select the position, and above model will be ignored')
+        help_icon = ft.Icon('help', color=ft.colors.GREY, size=16, tooltip=tooltip)
+        position_config_use_key = 'position_config_use'
+        position_config_use = CONFIG_OBJ[self.selected_project][position_config_use_key]
+        position_config_use_input = ft.Switch(value=position_config_use, on_change=self.project_config_save,key=position_config_use_key)
+        position_config_use_row = ft.Row([ft.Text('Position Config Use', size=14), help_icon,ft.Row(expand=1), position_config_use_input])
+        position_1_use_key = 'position_1_use'
+        position_1_use = CONFIG_OBJ[self.selected_project][position_1_use_key]
+        position_1_use_input = ft.Switch(value=position_1_use, on_change=self.project_config_save,key=position_1_use_key)
+        position_1_use_row = ft.Row([ft.Text('Position 1 Use', size=14), help_icon,ft.Row(expand=1), position_1_use_input])
+        position_1_center_key = 'position_1_center'
+        position_1_center = CONFIG_OBJ[self.selected_project][position_1_center_key]
+        position_1_center_x_input = ft.TextField(value=position_1_center, on_change=self.project_config_save,key=position_1_center_key)
+        position_1_center_y_input = ft.TextField(value=position_1_center, on_change=self.project_config_save,key=position_1_center_key)
+        position_1_center_row = ft.Row([ft.Text('Position 1 Center', size=14), ft.Row(expand=1), position_1_center_x_input, position_1_center_y_input])
+        
+        
+
+        position_card = ft.Card(ft.Container(ft.Column([position_config_use_row,position_1_use_row,position_1_center_row]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
+
+
+
+        
+
+        column = ft.Column([project_label, project_card, trigger_label, trigger_card, cam_label, cam_card, model_label, model_card, output_label, output_card, logic_label, logic_card, model_config_label, model_config_card, layer_label, layer_card, position_label, position_card], width=720, spacing=12)
         tab_container = ft.Container(column, padding=36, alignment=ft.Alignment(0, -1))
         self.content = ft.Column([tab_container], scroll=ft.ScrollMode.AUTO)
-
-
-
 
 
     def project_config_load(self):
@@ -430,6 +456,7 @@ class FlowSettingPage(ft.Tab):
                     'socket_port' : 9004,
                     'layer_config_use' : False,
                     'layer_config_file_path' : 'c:/Users/Administrator/Desktop/test.csv',
+                    'position_config_use' : False,
 
                 }
                 with open('user_data/config.ini', 'w', encoding='utf-8') as f:

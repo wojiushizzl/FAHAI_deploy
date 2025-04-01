@@ -4,7 +4,7 @@ from threading import Thread
 import datetime
 import time
 from custom_widgets.screen import Screen
-from custom_widgets.screen_layer import Screen_layer
+
 
 class HomeWindow(ft.Container):
     def __init__(self):
@@ -21,7 +21,6 @@ class HomeWindow(ft.Container):
         self.tab2 = Two_Screen()
         self.tab4 = Four_Screen()
         self.tab5 = Layer_Screen()
-
         selected_tab = CONFIG_OBJ['home']['selected_tab']
 
         tab_widget = ft.Tabs(tabs=[self.tab1, self.tab2, self.tab4, self.tab5], animation_duration=300,
@@ -111,5 +110,8 @@ class Layer_Screen(ft.Tab):
 
     def _init_widgets(self):
         """初始化组件"""
-        self.screen1 = Screen_layer('layer_flow')
+        self.screen1 = Screen('layer_flow')
         self.content = ft.Column([self.screen1],alignment=ft.MainAxisAlignment.CENTER)
+
+
+
