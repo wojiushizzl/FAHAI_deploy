@@ -54,6 +54,9 @@ class Screen(ft.Container):
             on_change=self.flow_select_change)
         self.flow_result = ft.Markdown()
         self.flow_result.value = f"当前流程：{self.current_flow}"
+        
+
+        
         self.visual_result = ft.Image(src='/images/siri.gif',fit=ft.ImageFit.CONTAIN,expand=1)
         self.start_stop_btn = ft.IconButton(icon=ft.icons.PLAY_ARROW, on_click=self.on_start_stop_btn_click)
         self.progress_bar = ft.ProgressBar( height=3, visible=False,expand=1)
@@ -69,8 +72,9 @@ class Screen(ft.Container):
 
         row1 = ft.Row([select_flow_label, flow_select, self.start_stop_btn])
         row2 = ft.Row([self.progress_bar])
-        row4 = ft.Row([self.flow_result])
         row3 = ft.Row([self.visual_result],expand=1,alignment=ft.MainAxisAlignment.CENTER)
+        row4 = ft.Row([self.flow_result])
+
         card_content = ft.Container(ft.Column([row1, row2, row3, row4], spacing=10), padding=10)
         card = ft.Card(card_content, variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(1,1,1,1),expand=1)
 
