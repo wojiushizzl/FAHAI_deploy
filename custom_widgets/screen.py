@@ -32,6 +32,11 @@ class Screen(ft.Container):
         self.socket_connect_result = None
         self.modbus_connect_result = None
         self.pn_in_model_config = True
+        self.gpio_dir={
+            0:20,
+            1:21,
+            2:26
+        }
 
         self._init_widgets()
     def _init_widgets(self):
@@ -426,7 +431,7 @@ class Screen(ft.Container):
 
     def _check_gpio_output(self, gpio_output_point):
         """检查GPIO输出"""
-        gpio_output_point = int(gpio_output_point)  
+        gpio_output_point = self.gpio_dir[int(gpio_output_point)]
         try:    
             import Jetson.GPIO as GPIO
             self.GPIO=GPIO
@@ -729,7 +734,7 @@ class Screen(ft.Container):
     def _gpio_output(self, ok_ng: bool, flow_config):
         """GPIO输出"""
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] GPIO output...")
-        gpio_output_point = int(flow_config['gpio_output_point'])
+        gpio_output_point =self.gpio_dir[ int(flow_config['gpio_output_point'])]
         if ok_ng:
             self.GPIO.output(gpio_output_point, self.GPIO.HIGH)
         else:
