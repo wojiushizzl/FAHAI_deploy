@@ -3,7 +3,8 @@ from common.app_setting import Setting, CONFIG_OBJ
 from threading import Thread
 import time
 
-
+# TODO
+# 1. cam ip 设置
 
 
 
@@ -104,6 +105,8 @@ class FlowSettingPage(ft.Tab):
         cam1_type=CONFIG_OBJ[self.selected_project][cam1_type_key]
         cam1_idx=CONFIG_OBJ[self.selected_project][cam1_idx_key]
         cam1_size = CONFIG_OBJ[self.selected_project][cam1_size_key]
+        cam1_ip = CONFIG_OBJ[self.selected_project][cam1_ip_key]
+        
         self.cam1_type_input = ft.Dropdown(options=[
             ft.dropdown.Option('0', 'CV CAM'),
             ft.dropdown.Option('1', 'Hikvision'),
@@ -119,10 +122,12 @@ class FlowSettingPage(ft.Tab):
         cam1_use=CONFIG_OBJ[self.selected_project][cam1_use_key]
         self.cam1_use_input = ft.Switch(value=cam1_use, on_change=self.project_config_save,key=cam1_use_key)
         self.cam1_size_input = ft.TextField(value=cam1_size,on_change=self.project_config_save,key=cam1_size_key)
+        self.cam1_ip_input = ft.TextField(value=cam1_ip,on_change=self.project_config_save,key=cam1_ip_key)
         cam1_row = ft.Row([cam1_setting_label, help_icon, ft.Row(expand=1), self.cam1_type_input, self.cam1_idx_input,  self.cam1_use_input])
         cam1_row2 = ft.Row([ft.Text('Cam1 Size', size=14), ft.Row(expand=1), self.cam1_size_input])
+        cam1_row3 = ft.Row([ft.Text('Cam1 IP', size=14), ft.Row(expand=1), self.cam1_ip_input])
 
-        cam_card = ft.Card(ft.Container(ft.Column([cam1_row, cam1_row2]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
+        cam_card = ft.Card(ft.Container(ft.Column([cam1_row, cam1_row2, cam1_row3]), padding=20), variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(0, 0, 0, 12))
 
 
         # 模型选择
@@ -422,10 +427,12 @@ class FlowSettingPage(ft.Tab):
                     'cam1_idx' : 1,
                     'cam1_size' : 1024,
                     'cam1_use' : True,
+                    'cam1_ip' : '192.168.1.90',
                     'cam2_type' : 1,
                     'cam2_idx' : 1,
                     'cam2_size' : 6400,
                     'cam2_use' : True,
+                    'cam2_ip' : '192.168.1.90',
                     'model1_path' : 'c:/Users/Administrator/Desktop/test.pt',
                     'model1_confidence' : 0.5,
                     'model1_iou' : 0.54,

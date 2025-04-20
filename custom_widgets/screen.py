@@ -13,6 +13,10 @@ import os
 import pandas as pd
 import logging
 import threading
+# from hik_CAM_linux.getFrame import start_cam, exit_cam, get_frame
+
+
+
 #save log to file
 logging.basicConfig(level=logging.INFO, filename='user_data/log.log')
 logger = logging.getLogger(__name__)
@@ -146,7 +150,7 @@ class Screen(ft.Container):
                 self.cap.release()
                 self.cap = None
             except Exception as e:
-                from hik_CAM.getFrame import exit_cam
+                from hik_CAM_linux.getFrame import exit_cam
                 exit_cam(self.cap, self.data_buf)
                 self.cap = None
 
@@ -350,7 +354,7 @@ class Screen(ft.Container):
         cam_idx = flow_config['cam1_idx']
         cam_size = flow_config['cam1_size']
         cam_use = flow_config['cam1_use']
-        
+        cam_ip = flow_config['cam1_ip']
         if cam_use:
             if cam_type == '0':
                 try:
@@ -367,8 +371,8 @@ class Screen(ft.Container):
             elif cam_type == '1':
                 try:
                     logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Check Camera : HIK camera")
-                    from hik_CAM.getFrame import start_cam, exit_cam, get_frame
-                    self.cap, self.stOutFrame, self.data_buf = start_cam(nConnectionNum=int(cam_idx))
+                    from hik_CAM_linux.getFrame import start_cam, exit_cam, get_frame
+                    self.cap, self.stOutFrame, self.data_buf = start_cam(nConnectionNum=int(cam_idx),ip=cam_ip)
                    #  取10帧   
                     for _ in range(10):
                         ret,frame=get_frame(self.cap, self.stOutFrame)
@@ -566,7 +570,7 @@ class Screen(ft.Container):
             ret, frame = self.cap.read()  # 读取最新帧
 
         elif flow_config['cam1_type'] == "1":
-            from hik_CAM.getFrame import start_cam, exit_cam, get_frame
+            from hik_CAM_linux.getFrame import start_cam, exit_cam, get_frame
             ret, frame = get_frame(self.cap, self.stOutFrame)
 
         try:

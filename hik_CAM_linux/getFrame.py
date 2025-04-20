@@ -37,7 +37,7 @@ def press_any_key_exit():
         termios.tcsetattr(fd, termios.TCSANOW, old_ttyinfo)
 
 
-def start_cam(nConnectionNum=0):
+def start_cam(nConnectionNum=0,ip=None):
     SDKVersion = MvCamera.MV_CC_GetSDKVersion()
     print("SDKVersion[0x%x]" % SDKVersion)
 
@@ -56,6 +56,8 @@ def start_cam(nConnectionNum=0):
 
     print("Find %d devices!" % deviceList.nDeviceNum)
 
+    
+    gige_device_dir = {}
     for i in range(0, deviceList.nDeviceNum):
         mvcc_dev_info = cast(deviceList.pDeviceInfo[i], POINTER(MV_CC_DEVICE_INFO)).contents
         # print(mvcc_dev_info)
@@ -71,6 +73,7 @@ def start_cam(nConnectionNum=0):
             nip3 = ((mvcc_dev_info.SpecialInfo.stGigEInfo.nCurrentIp & 0x0000ff00) >> 8)
             nip4 = (mvcc_dev_info.SpecialInfo.stGigEInfo.nCurrentIp & 0x000000ff)
             print("current ip: %d.%d.%d.%d\n" % (nip1, nip2, nip3, nip4))
+            gige_device_dir[str(nip1)+'.'+str(nip2)+'.'+str(nip3)+'.'+str(nip4)] = i
         elif mvcc_dev_info.nTLayerType == MV_USB_DEVICE:
             print("\nu3v device: [%d]" % i)
             strModeName = ""
@@ -86,6 +89,18 @@ def start_cam(nConnectionNum=0):
                     break
                 strSerialNumber = strSerialNumber + chr(per)
             print("user serial number: %s" % strSerialNumber)
+    if mvcc_dev_info.nTLayerType == MV_GIGE_DEVICE:
+        print(gige_device_dir)
+        if ip in gige_device_dir:
+            nConnectionNum = gige_device_dir[ip]
+        else:
+            print("ip not found")
+            sys.exit()
+    elif mvcc_dev_info.nTLayerType == MV_USB_DEVICE:
+        pass
+    
+
+
 
     # if sys.version >= '3':
     # 	nConnectionNum = input("please input the number of the device to connect:")
@@ -98,6 +113,9 @@ def start_cam(nConnectionNum=0):
 
     # ch:创建相机实例 | en:Creat Camera Object
     cam = MvCamera()
+
+
+
 
     # ch:选择设备并创建句柄| en:Select device and create handle
     stDeviceList = cast(deviceList.pDeviceInfo[int(nConnectionNum)], POINTER(MV_CC_DEVICE_INFO)).contents
