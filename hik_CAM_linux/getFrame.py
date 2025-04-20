@@ -7,7 +7,7 @@ import termios
 import cv2
 from ctypes import *
 import numpy as np
-from hik_CAM.MvCameraControl_class import *
+from hik_CAM_linux.MvCameraControl_class import *
 
 
 
@@ -98,7 +98,7 @@ def start_cam(nConnectionNum=0,ip=None):
             sys.exit()
     elif mvcc_dev_info.nTLayerType == MV_USB_DEVICE:
         pass
-    
+
 
 
 

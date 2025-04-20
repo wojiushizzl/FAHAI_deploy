@@ -86,7 +86,7 @@ class CamTestPage(ft.Tab):
             self.cap.release()
             self.cap = None
         except:
-            from hik_CAM.getFrame import exit_cam
+            from hik_CAM_linux.getFrame import exit_cam
             exit_cam(self.cap, self.data_buf)
             self.cap = None
         finally:
@@ -127,7 +127,7 @@ class CamTestPage(ft.Tab):
         if self.cam_type_input.value == '0':
             self.cap = cv2.VideoCapture(int(self.cam_idx_input.value))
         elif self.cam_type_input.value == '1':
-            from hik_CAM.getFrame import start_cam
+            from hik_CAM_linux.getFrame import start_cam
             self.cap, self.stOutFrame, self.data_buf = start_cam(int(self.cam_idx_input.value))
 
     def _get_frame_from_cv_cam(self):
@@ -140,7 +140,7 @@ class CamTestPage(ft.Tab):
     def _get_frame_from_hik_cam(self):
         """获取Hikvision相机帧"""
         print('获取Hikvision相机帧')
-        from hik_CAM.getFrame import get_frame
+        from hik_CAM_linux.getFrame import get_frame
         ret, frame = get_frame(self.cap, self.stOutFrame)
         return ret,frame
 

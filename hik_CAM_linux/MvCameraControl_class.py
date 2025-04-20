@@ -7,12 +7,12 @@ import os
 
 from ctypes import *
 
-from hik_CAM.CameraParams_const import *
-from hik_CAM.CameraParams_header import *
-from hik_CAM.MvCameraControl_header import *
-from hik_CAM.MvErrorDefine_const import *
-from hik_CAM.PixelType_const import *
-from hik_CAM.PixelType_header import *
+from hik_CAM_linux.CameraParams_const import *
+from hik_CAM_linux.CameraParams_header import *
+from hik_CAM_linux.MvCameraControl_header import *
+from hik_CAM_linux.MvErrorDefine_const import *
+from hik_CAM_linux.PixelType_const import *
+from hik_CAM_linux.PixelType_header import *
 
     
 MvCamCtrldll = ctypes.cdll.LoadLibrary(os.getenv('MVCAM_COMMON_RUNENV') + "/aarch64/libMvCameraControl.so")
