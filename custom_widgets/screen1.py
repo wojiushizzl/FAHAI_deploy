@@ -17,8 +17,6 @@ import threading
 logging.basicConfig(level=logging.INFO, filename='user_data/log.log')
 logger = logging.getLogger(__name__)
 
-
-
 class Screen(ft.Container):
     def __init__(self, index: str):
         super().__init__()
@@ -34,6 +32,11 @@ class Screen(ft.Container):
         self.socket_connect_result = None
         self.modbus_connect_result = None
         self.pn_in_model_config = True
+        self.gpio_dir={
+            0:20,
+            1:21,
+            2:26
+        }
 
         self._init_widgets()
     def _init_widgets(self):
@@ -51,19 +54,38 @@ class Screen(ft.Container):
             on_change=self.flow_select_change)
         self.flow_result = ft.Markdown()
         self.flow_result.value = f"当前流程：{self.current_flow}"
+        
+
+        
         self.visual_result = ft.Image(src='/images/siri.gif',fit=ft.ImageFit.CONTAIN,expand=1)
         self.start_stop_btn = ft.IconButton(icon=ft.icons.PLAY_ARROW, on_click=self.on_start_stop_btn_click)
         self.progress_bar = ft.ProgressBar( height=3, visible=False,expand=1)
 
+        flow_config = CONFIG_OBJ[self.current_flow]
+        if flow_config['layer_config_use'] == 'True':
+            self.objects_sequence=self._load_layer_config(flow_config)
+            self.objects_quantity = len(self.objects_sequence)
+            self.current_object_index = 0
+
+
+        
+
         row1 = ft.Row([select_flow_label, flow_select, self.start_stop_btn])
         row2 = ft.Row([self.progress_bar])
-        row4 = ft.Row([self.flow_result])
         row3 = ft.Row([self.visual_result],expand=1,alignment=ft.MainAxisAlignment.CENTER)
+        row4 = ft.Row([self.flow_result])
+
         card_content = ft.Container(ft.Column([row1, row2, row3, row4], spacing=10), padding=10)
         card = ft.Card(card_content, variant=ft.CardVariant.ELEVATED, elevation=2, margin=ft.Margin(1,1,1,1),expand=1)
 
         self.content = ft.Column([card], alignment=ft.MainAxisAlignment.CENTER)
+        # create bgcolor text
+        self.objects_row = ft.Row(alignment=ft.MainAxisAlignment.CENTER) 
+        if flow_config['layer_config_use'] == 'True':
+            for object in self.objects_sequence:
+                self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
 
+        self.content.controls.append(self.objects_row)
 
     
     def flow_select_change(self, e: ft.ControlEvent):
@@ -73,6 +95,19 @@ class Screen(ft.Container):
         self.flow_result.value = f"当前流程：{flow}"
         self.page.update()
         self.current_flow = flow
+
+        flow_config = CONFIG_OBJ[self.current_flow]
+        self.objects_row.controls = []
+
+        if flow_config['layer_config_use'] == 'True':
+            self.objects_sequence=self._load_layer_config(flow_config)
+            self.objects_quantity = len(self.objects_sequence)
+            self.current_object_index = 0
+            for object in self.objects_sequence:
+                self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
+        self.page.update()
+
+
         CONFIG_OBJ['home'][self.index] = flow
         with open('user_data/config.ini', 'w', encoding='utf-8') as f:
             CONFIG_OBJ.write(f)
@@ -91,7 +126,10 @@ class Screen(ft.Container):
         self.start_stop_btn.icon = ft.icons.PLAY_ARROW
         self.progress_bar.visible = False
         # self.page.update()
-        
+        flow_config = CONFIG_OBJ[self.current_flow]
+        if flow_config['layer_config_use'] == 'True':
+            self.current_object_index=0
+            self._reset_objects_row()
         self.is_running = False
 
         if self.cap:
@@ -177,13 +215,23 @@ class Screen(ft.Container):
             self.page.update()
             if flow_config['trigger_type'] == '0':
                 #实时探测模式
-                ret,frame=self._get_frame_from_cam(flow_config)
-
-                res=self._detect_object(frame,flow_config)
-                if res is None:
-                    continue
-                ok_or_ng=self._logic_process(res,flow_config)
-                self._output_result(res,ok_or_ng,flow_config)
+                
+                if flow_config['layer_config_use'] == 'True':
+                    #分层识别模式
+                    # print(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] objects_sequence: {objects_sequence}")
+                    ret,frame=self._get_frame_from_cam(flow_config)
+                    res=self._detect_object(frame,flow_config)
+                    if res is None:
+                        continue
+                    ok_or_ng=self._logic_process(res,flow_config)
+                    self._output_result(res,ok_or_ng,flow_config)
+                else:   
+                    ret,frame=self._get_frame_from_cam(flow_config)
+                    res=self._detect_object(frame,flow_config)
+                    if res is None:
+                        continue
+                    ok_or_ng=self._logic_process(res,flow_config)
+                    self._output_result(res,ok_or_ng,flow_config)
 
             elif flow_config['trigger_type'] == '1':
                 #触发器模式
@@ -330,9 +378,16 @@ class Screen(ft.Container):
         model_confidence = flow_config['model1_confidence']
         model_iou = flow_config['model1_iou']
         model_use = flow_config['model1_use']
+        flow_config = CONFIG_OBJ[self.current_flow]
+
         if_use_model_config = flow_config['model_config_use']
+        
+
         if if_use_model_config == 'True':
             return True
+        elif flow_config['layer_config_use'] == 'True':
+            model_path,conf_thres,iou_thres,img_size= self._load_layer_model_config(flow_config)
+            self.model=YOLO(model_path)
         else:
             if model_use:
                 try:
@@ -380,7 +435,7 @@ class Screen(ft.Container):
 
     def _check_gpio_output(self, gpio_output_point):
         """检查GPIO输出"""
-        gpio_output_point = int(gpio_output_point)  
+        gpio_output_point = self.gpio_dir[int(gpio_output_point)]
         try:    
             import Jetson.GPIO as GPIO
             self.GPIO=GPIO
@@ -513,16 +568,27 @@ class Screen(ft.Container):
         """检测物体"""
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Detect Object...")
         if_model_config_use = flow_config['model_config_use']
+        if_layer_config_use = flow_config['layer_config_use']
         if if_model_config_use == 'True':
             model_path,conf_thres,iou_thres,img_size= self._load_model_config(flow_config)
             if model_path is None:
                 return None
             self.model = YOLO(model_path)
+            results = self.model(frame, conf=conf_thres, iou=iou_thres, imgsz=img_size)
+        elif if_layer_config_use == 'True':
+            model_path,conf_thres,iou_thres,img_size= self._load_layer_model_config(flow_config)
+            if model_path is None:
+                return None
+            classes = self.model.names
+            class_values = list(classes.values())
+            class_name=self.objects_sequence[self.current_object_index]
+            class_index=class_values.index(class_name)
+            results = self.model(frame, conf=conf_thres, iou=iou_thres, imgsz=img_size,classes=[class_index])
         else:
             conf_thres = float(flow_config['model1_confidence'])
             iou_thres = float(flow_config['model1_iou'])
             img_size = int(flow_config['cam1_size'])
-        results = self.model(frame, conf=conf_thres, iou=iou_thres, imgsz=img_size)
+            results = self.model(frame, conf=conf_thres, iou=iou_thres, imgsz=img_size)
         return results
 
     def _load_model_config(self, flow_config):
@@ -552,7 +618,6 @@ class Screen(ft.Container):
             logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Socket TCP connect failed Error: {e}")
         finally:
             self.socket_client.close()
-        # TODO 获取不到PN逻辑
         data_PN=int(self.socket_data[-10:])
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] data: {self.socket_data}    data_PN: {data_PN}")
         if data_PN not in model_config_file.index:
@@ -573,6 +638,20 @@ class Screen(ft.Container):
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- img_size: {img_size}")
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}]--- selected_objects: {self.selected_objects}")
         return model_path,conf,iou,img_size
+    def _load_layer_model_config(self, flow_config):
+        """加载分层识别配置"""
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Load layer config...")
+        layer_config_file_path = flow_config['layer_config_file_path']
+        layer_config_file = pd.read_csv(layer_config_file_path, header=0, index_col=0, encoding='utf-8')
+        layer_PN=self.current_flow
+        if layer_PN not in layer_config_file.index:
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] layer_PN: {layer_PN} not in layer_config_file")
+            return None,None,None,None
+        model_path=layer_config_file.loc[layer_PN]['model']
+        conf=float(layer_config_file.loc[layer_PN]['conf'])
+        iou=float(layer_config_file.loc[layer_PN]['iou'])
+        img_size=int(layer_config_file.loc[layer_PN]['imgsz'])
+        return model_path,conf,iou,img_size
     def _reset_pn_in_model_config(self, flow_config):
         """重置PN在模型配置中"""
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Reset PN in model config...")
@@ -586,6 +665,7 @@ class Screen(ft.Container):
         res_json_load = json.loads(result[0].tojson())
         detected_objects = [r['name'] for r in res_json_load]   
         if_model_config_use = flow_config['model_config_use']
+        if_layer_config_use = flow_config['layer_config_use']
         if if_model_config_use == 'True':
             self.selected_objects = self.selected_objects
         else:
@@ -594,7 +674,14 @@ class Screen(ft.Container):
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Selected_objects: {self.selected_objects}")
         logic_type = flow_config['logic_type']
         if logic_type == '0':  # detected objects [in] selected_objects
-            check_result = all(item in self.selected_objects for item in detected_objects) and len(detected_objects) > 0
+            if if_layer_config_use == 'True':
+                logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Select_objects: {self.objects_sequence[self.current_object_index]}")
+                check_result = all(item in self.objects_sequence[self.current_object_index] for item in detected_objects) and len(detected_objects) > 0
+
+
+            else:
+                check_result = all(item in self.selected_objects for item in detected_objects) and len(detected_objects) > 0
+            
 
         elif logic_type == '1':  # selected_objects [in] detected objects
             check_result = all(item in detected_objects for item in self.selected_objects) and len(detected_objects) > 0
@@ -603,6 +690,11 @@ class Screen(ft.Container):
         else:
             check_result = False
         return check_result
+    def _reset_objects_row(self):
+        self.objects_row.controls=[]
+        for object in self.objects_sequence:
+            self.objects_row.controls.append(ft.Text(object, size=14, bgcolor=ft.colors.BLUE_GREY_100))
+        self.page.update()
 
     def _output_result(self,res, ok_ng: bool, flow_config):
         """输出结果"""
@@ -611,6 +703,22 @@ class Screen(ft.Container):
         if_visual_output = flow_config['visual']
         if_plc_output = flow_config['plc_output']
         if_save_output = flow_config['result_save']
+        if_layer_config_use = flow_config['layer_config_use']
+
+        if if_layer_config_use =='True':
+            if ok_ng:
+                if self.current_object_index < len(self.objects_sequence)-1:
+                    self.objects_row.controls[self.current_object_index].bgcolor = ft.colors.GREEN
+                    self.page.update()
+                    self.current_object_index +=1
+                else:
+                    self.objects_row.controls[self.current_object_index].bgcolor = ft.colors.GREEN
+                    self.page.update()
+                    self.current_object_index=0
+                    time.sleep(3)
+                    self._reset_objects_row()
+            else:
+                pass
 
         if if_gpio_output == 'True':
             self._gpio_output( ok_ng, flow_config)
@@ -623,12 +731,14 @@ class Screen(ft.Container):
         
         if if_save_output == 'True':
             self._save_output(res, ok_ng, flow_config)
+        
+        
 
         
     def _gpio_output(self, ok_ng: bool, flow_config):
         """GPIO输出"""
         logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] GPIO output...")
-        gpio_output_point = int(flow_config['gpio_output_point'])
+        gpio_output_point =self.gpio_dir[ int(flow_config['gpio_output_point'])]
         if ok_ng:
             self.GPIO.output(gpio_output_point, self.GPIO.HIGH)
         else:
@@ -711,3 +821,17 @@ class Screen(ft.Container):
 
         except Exception as e:
             logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>Error saving results: {e}")
+
+
+    def _load_layer_config(self, flow_config):
+        """加载分层识别配置"""
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Load layer config...")
+        layer_config_file_path = flow_config['layer_config_file_path']
+        layer_config_file = pd.read_csv(layer_config_file_path, header=0, index_col=0, encoding='utf-8')
+        layer_PN=self.current_flow
+        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] layer_PN: {layer_PN}")
+        if layer_PN not in layer_config_file.index:
+            logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] layer_PN: {layer_PN} not in layer_config_file")
+            return None
+        objects_sequence=layer_config_file.loc[layer_PN]['objects_sequence'].split(',')[0:-1]
+        return objects_sequence

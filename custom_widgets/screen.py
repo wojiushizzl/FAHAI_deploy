@@ -127,6 +127,15 @@ class Screen(ft.Container):
         self.progress_bar.visible = False
         # self.page.update()
         flow_config = CONFIG_OBJ[self.current_flow]
+        if_gpio_output = flow_config['gpio']
+        gpio_output_point = flow_config['gpio_output_point']
+        gpio_output_point = self.gpio_dir[int(gpio_output_point)]
+
+        if if_gpio_output:
+            try:
+                self.GPIO.output(gpio_output_point, self.GPIO.LOW)
+            except Exception as e:
+                logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] GPIO error: {e}")
         if flow_config['layer_config_use'] == 'True':
             self.current_object_index=0
             self._reset_objects_row()
@@ -442,6 +451,7 @@ class Screen(ft.Container):
             self.GPIO.setmode(self.GPIO.BCM)
             self.GPIO.setwarnings(False)
             self.GPIO.setup(gpio_output_point, self.GPIO.OUT, initial=self.GPIO.LOW)
+            self.GPIO.output(gpio_output_point, self.GPIO.LOW)
             return True
         except Exception as e:
             logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] GPIO error: {e}")
@@ -715,13 +725,20 @@ class Screen(ft.Container):
                     self.objects_row.controls[self.current_object_index].bgcolor = ft.colors.GREEN
                     self.page.update()
                     self.current_object_index=0
+                    if if_gpio_output == 'True':
+                        self._gpio_output( ok_ng, flow_config)
                     time.sleep(3)
+                    if if_gpio_output == 'True':
+                        self._gpio_output( False, flow_config)
                     self._reset_objects_row()
             else:
                 pass
 
         if if_gpio_output == 'True':
-            self._gpio_output( ok_ng, flow_config)
+            if if_layer_config_use =='True':
+                pass
+            else:
+                self._gpio_output( ok_ng, flow_config)
         
         if if_visual_output == 'True':
             self._visual_output(res, ok_ng, flow_config)
@@ -741,8 +758,11 @@ class Screen(ft.Container):
         gpio_output_point =self.gpio_dir[ int(flow_config['gpio_output_point'])]
         if ok_ng:
             self.GPIO.output(gpio_output_point, self.GPIO.HIGH)
+            print('ok  gpio high')
         else:
             self.GPIO.output(gpio_output_point, self.GPIO.LOW)
+            print('NG  gpio LOW')
+
 
     def _visual_output(self, res, ok_ng: bool, flow_config):
         """视觉输出"""
