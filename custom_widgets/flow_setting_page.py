@@ -100,6 +100,7 @@ class FlowSettingPage(ft.Tab):
         cam1_type_key = 'cam1_type'
         cam1_idx_key = 'cam1_idx'
         cam1_size_key = 'cam1_size'
+        cam1_ip_key = 'cam1_ip'
         cam1_type=CONFIG_OBJ[self.selected_project][cam1_type_key]
         cam1_idx=CONFIG_OBJ[self.selected_project][cam1_idx_key]
         cam1_size = CONFIG_OBJ[self.selected_project][cam1_size_key]

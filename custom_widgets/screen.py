@@ -350,6 +350,7 @@ class Screen(ft.Container):
         cam_idx = flow_config['cam1_idx']
         cam_size = flow_config['cam1_size']
         cam_use = flow_config['cam1_use']
+        
         if cam_use:
             if cam_type == '0':
                 try:

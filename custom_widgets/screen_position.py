@@ -19,6 +19,9 @@ import math
 logging.basicConfig(level=logging.INFO, filename='user_data/log.log')
 logger = logging.getLogger(__name__)
 
+#TODO 
+# 1. 替换为喷漆线已修改的.py
+
 
 class Screen(ft.Container):
     def __init__(self, index: str):
