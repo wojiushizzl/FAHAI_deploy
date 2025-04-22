@@ -374,9 +374,16 @@ class Screen(ft.Container):
                     from hik_CAM_linux.getFrame import start_cam, exit_cam, get_frame
                     self.cap, self.stOutFrame, self.data_buf = start_cam(nConnectionNum=int(cam_idx),ip=cam_ip)
                    #  取10帧   
-                    for _ in range(10):
+                    for _ in range(5):
                         ret,frame=get_frame(self.cap, self.stOutFrame)
                         # print(frame.shape)
+                    self.cap.MV_CC_StopGrabbing()
+                    if ret == 0:
+                        logger.info(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Camera stopped")
+                    else:
+                        logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Camera stop failed")
+                        return False
+
                     return True
                 except Exception as e:
                     logger.error(f"time: {time.strftime('%Y-%m-%d %H:%M:%S')}===>[{self.current_flow}] Error initializing camera: {e}")
@@ -571,7 +578,10 @@ class Screen(ft.Container):
 
         elif flow_config['cam1_type'] == "1":
             from hik_CAM_linux.getFrame import start_cam, exit_cam, get_frame
+            self.cap.MV_CC_StartGrabbing()
             ret, frame = get_frame(self.cap, self.stOutFrame)
+            self.cap.MV_CC_StopGrabbing()
+
 
         try:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

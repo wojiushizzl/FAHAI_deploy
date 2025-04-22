@@ -14,6 +14,7 @@ import pandas as pd
 import logging
 import threading
 import math
+# from hik_CAM_linux.getFrame import start_cam, exit_cam, get_frame
 
 #save log to file
 logging.basicConfig(level=logging.INFO, filename='user_data/log.log')
@@ -362,8 +363,9 @@ class Screen(ft.Container):
                     from hik_CAM_linux.getFrame import start_cam, exit_cam, get_frame
                     self.cap, self.stOutFrame, self.data_buf = start_cam(nConnectionNum=int(cam_idx))
                    #  取10帧   
-                    for _ in range(10):
+                    for _ in range(5):
                         ret,frame=get_frame(self.cap, self.stOutFrame)
+                    self.cap.MV_CC_StopGrabbing()
                         # print(frame.shape)
                     return True
                 except Exception as e:
@@ -558,7 +560,9 @@ class Screen(ft.Container):
 
         elif flow_config['cam1_type'] == "1":
             from hik_CAM_linux.getFrame import start_cam, exit_cam, get_frame
+            self.cap.MV_CC_StartGrabbing()
             ret, frame = get_frame(self.cap, self.stOutFrame)
+            self.cap.MV_CC_StopGrabbing()
 
         try:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
