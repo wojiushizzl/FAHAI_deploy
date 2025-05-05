@@ -725,7 +725,7 @@ class FlowSettingPage(ft.Tab):
         dialog = ft.FilePicker(on_result=self.pick_model1_finished)
         self.page.overlay.append(dialog)
         self.page.update()
-        dialog.pick_files('选择模型', allowed_extensions=['pt'])
+        dialog.pick_files('选择模型', allowed_extensions=['pt','engine'])
         pass
 
     def pick_model1_finished(self, e: ft.FilePickerResultEvent):
